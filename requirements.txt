@@ -18,3 +18,5 @@ dask==2.16.0
 toolz==0.10.0
 fsspec==0.7.3
 cloudpickle==1.4.1
+dask[dataframe]
+tables
