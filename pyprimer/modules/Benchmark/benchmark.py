@@ -21,7 +21,6 @@ from pyprimer.utils.essentials import Essentials
 class Benchmark(object):
 
     BENCHMARK_qPCR_COL_LIST = [
-                "Header"
                 "F Primer Name",
                 "F Primer Version",
                 "P Probe Name",
@@ -175,7 +174,7 @@ class Benchmark(object):
                                                     R_primer=r_ver,
                                                     R_match=r_match)
 
-                    res.append([header, f_name, f_ver, f_name, p_ver,
+                    res.append([f_name, f_ver, f_name, p_ver,
                                 r_name, r_ver, header, amplicon,
                                 amplicon_length, start, end, PPC])
 
