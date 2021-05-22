@@ -316,8 +316,8 @@ class PPC(object):
                     amplicon_length = 0
                     PPC = 0
 
-        res.append([f_name, f_ver, r_name, r_ver,
-                    header, amplicon, amplicon_length, start, end, PPC])
+                res.append([f_name, f_ver, r_name, r_ver,
+                            header, amplicon, amplicon_length, start, end, PPC])
                             
         df = pd.DataFrame(res, columns=self.COL_LIST)
         del res
