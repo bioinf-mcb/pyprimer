@@ -167,7 +167,7 @@ class Benchmark(object):
                                                     R_primer=r_ver,
                                                     R_match=r_match)
 
-                    res.append([f_name, f_ver, p_name, p_ver,
+                    res.append([f_name, f_ver, f_name, p_ver,
                                 r_name, r_ver, header, amplicon,
                                 amplicon_length, start, end, PPC])
 
