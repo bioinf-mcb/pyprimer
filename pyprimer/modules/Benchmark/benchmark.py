@@ -158,8 +158,8 @@ class Benchmark(object):
                             amplicon_length = 0
                             f_match = ""
                             r_match = ""
-                            p_ver = ""
-                            p_match = ""
+                            p_ver = None
+                            p_match = None
                             PPC = 0
                         else:
                             PPC = TOOLS.calculate_PPC(F_primer=f_ver,
@@ -184,7 +184,7 @@ class Benchmark(object):
         unique_groups = self.primers["ID"].unique()
         bench_df = pd.DataFrame(columns = self.BENCHMARK_qPCR_COL_LIST)
         bench = dd.from_pandas(bench_df, npartitions = self.nCores)
-
+        summary = pd.DataFrame(columns = self.SUMMARY_qPCR_COL_LIST)
         os.makedirs(self.savedir, exist_ok = True)
 
         bench.to_hdf(
