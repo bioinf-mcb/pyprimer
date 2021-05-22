@@ -54,13 +54,17 @@ class Benchmark(object):
                     for pversion in group_df["P Probe Version"].unique():
                         mean_ppc = group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), "PPC"].mean()
                         seqs_matched = len(group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion) & (group_df["Amplicon Sense Length"] != 0), "Amplicon Sense Length"])
-                        n_seqs = len(group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), "Amplicon Sense Length"])
+                        n_seqs = group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), :].shape[0]
                         v_stats["Primer Group"].append(group)
                         v_stats["F Version"].append(fversion)
                         v_stats["P Version"].append(pversion)
                         v_stats["R Version"].append(rversion)
                         v_stats["Mean PPC"].append(mean_ppc)
-                        v_stats["Sequences matched(%)"].append((seqs_matched / n_seqs)*100)
+                        try:
+                            percent_matched = (seqs_matched / n_seqs)*100
+                        except:
+                            percent_matched = 0
+                        v_stats["Sequences matched(%)"].append(percent_matched)
             group_stats = pd.DataFrame(v_stats, columns = col_list)
 
         def help_analyse(x):
@@ -99,7 +103,7 @@ class Benchmark(object):
                         amplicon_length = 0
                         f_match = ""
                         r_match = ""
-                        p_ver = None
+                        p_ver = ""
                         p_match = None
                         PPC = 0
                     
@@ -160,7 +164,7 @@ class Benchmark(object):
                             amplicon_length = 0
                             f_match = ""
                             r_match = ""
-                            p_ver = None
+                            p_ver = ""
                             p_match = None
                             PPC = 0
                         else:
