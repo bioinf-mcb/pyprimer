@@ -67,6 +67,7 @@ class Benchmark(object):
                             percent_matched = 0
                         v_stats["Sequences matched(%)"].append(percent_matched)
             group_stats = pd.DataFrame(v_stats, columns = col_list)
+            return group_stats
 
         def help_analyse(x):
             return analyse(x, Fs, Rs, Ps, self.BENCHMARK_qPCR_COL_LIST,
@@ -194,15 +195,6 @@ class Benchmark(object):
         summary = pd.DataFrame(columns = self.SUMMARY_qPCR_COL_LIST)
         os.makedirs(self.savedir, exist_ok = True)
 
-        bench.to_hdf(
-            path_or_buf = os.path.join(self.savedir, self.hdf_fname),
-            key = "bench",
-            mode = "w",
-            format = "table",
-            scheduler = "processes",
-            data_columns = True
-        )
-
         for group in tqdm(unique_groups):
             print(f"Processing group {group}\n")
             Fs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "F"),:].values
@@ -213,7 +205,6 @@ class Benchmark(object):
             ).compute(scheduler = "processes")
             group_df = pd.concat(df_parts.tolist())
             group_df.reset_index(drop = True, inplace = True)
-            group_df.to_csv("./temp.csv", index = False)
             print("Performance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
@@ -222,13 +213,16 @@ class Benchmark(object):
             # group_df["Amplicon Sense Start"].apply(lambda x: str(x))
             # group_df["Amplicon Sense End"].apply(lambda x: str(x))
             # group_df["PPC"].apply(lambda x: str(x))
-            group_df = group_df.infer_objects()
+            group_df = group_df.astype(str)
             gdf = dd.from_pandas(group_df, npartitions = self.nCores)
             gdf.to_hdf(
                 path_or_buf = os.path.join(self.savedir, self.hdf_fname),
                 key = group,
                 mode = "a",
+                complevel = 0,
                 format = "table",
+                errors = "ignore",
+                min_itemsize = 850,
                 scheduler = "processes",
                 data_columns = True
             )
