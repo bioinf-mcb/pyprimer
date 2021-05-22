@@ -205,7 +205,7 @@ class Benchmark(object):
             df_parts = self.sequences.map_partitions(
                 lambda df: df.apply(help_analyse, axis = 1), meta=('df', None)
             ).compute(scheduler = "processes")
-            group_df = pd.concat(df_series.tolist())
+            group_df = pd.concat(df_parts.tolist())
             print("Performance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
