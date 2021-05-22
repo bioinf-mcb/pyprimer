@@ -14,7 +14,7 @@ import dask.threaded
 import sys
 import time
 import warnings
-from pyprimer.modules.PPC.ppc_tools import TOOLS
+from pyprimer.modules.Benchmark.benchmark_tools import TOOLS
 from pyprimer.utils.essentials import Essentials
 
 
@@ -64,7 +64,7 @@ class Benchmark(object):
             group_stats = pd.DataFrame(v_stats, columns = col_list)
 
         def help_analyse(x):
-            return analyse(x, Fs, Rs, Ps, BENCHMARK_qPCR_COL_LIST,
+            return analyse(x, Fs, Rs, Ps, self.BENCHMARK_qPCR_COL_LIST,
                            self.deletions, self.insertions, self.substitutions)
 
         def analyse(sequences, Fs, Rs, Ps, col_list, deletions, insertions, substitutions):
@@ -112,7 +112,7 @@ class Benchmark(object):
                                 Forwards[f_i] = (f_res[f_i].start, f_res[f_i].matched, f_res[f_i].dist)
                         Reverses = {}
                         if type(r_res) == type(tuple()):
-                            Reverses[0] = (r_res[0]. r_ver, 0)
+                            Reverses[0] = (r_res[0], r_ver, 0)
                         else:
                             for r_i in range(r_res):
                                 Reverses[r_i] = (r_res[r_i].start, r_res[f_i].matched, r_res[f_i].dist)
@@ -135,7 +135,7 @@ class Benchmark(object):
                         for k, v in matches.items():
                             if v[0] == True:
                                 n_match += 1
-                                klist = k.split(:)
+                                klist = k.split(":")
                                 k_f = int(klist[0])
                                 k_r = int(klist[1])
                                 f_good = Forwards[k_f]
@@ -184,7 +184,7 @@ class Benchmark(object):
         self.substitutions = substitutions
 
         unique_groups = self.primers["ID"].unique()
-        bench_df = pd.DataFrame(columns = BENCHMARK_COL_LIST)
+        bench_df = pd.DataFrame(columns = self.BENCHMARK_qPCR_COL_LIST)
         bench = dd.from_pandas(bench_df, npartitions = self.nCores)
 
         os.makedirs(self.savedir, exist_ok = True)
@@ -199,7 +199,7 @@ class Benchmark(object):
         )
 
         for group in tqdm(unique_groups):
-            print(f"Processing group {group} against {self.sequences.shape[0]} sequences\n")
+            print(f"Processing group {group}\n")
             Fs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "F"),:].values
             Rs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "R"),:].values
             Ps = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "P"),:].values
