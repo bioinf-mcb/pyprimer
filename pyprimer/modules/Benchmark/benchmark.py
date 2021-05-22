@@ -20,7 +20,9 @@ from pyprimer.utils.essentials import Essentials
 
 class Benchmark(object):
 
-    BENCHMARK_qPCR_COL_LIST = ["F Primer Name",
+    BENCHMARK_qPCR_COL_LIST = [
+                "Header"
+                "F Primer Name",
                 "F Primer Version",
                 "P Probe Name",
                 "P Probe Version",
@@ -173,7 +175,7 @@ class Benchmark(object):
                                                     R_primer=r_ver,
                                                     R_match=r_match)
 
-                    res.append([f_name, f_ver, f_name, p_ver,
+                    res.append([header, f_name, f_ver, f_name, p_ver,
                                 r_name, r_ver, header, amplicon,
                                 amplicon_length, start, end, PPC])
 
@@ -218,6 +220,10 @@ class Benchmark(object):
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
             print("Summary generated, saving group benchmark to HDF file\n")
+            group_df["Amplicon Sense Length"].apply(lambda x: str(x))
+            group_df["Amplicon Sense Start"].apply(lambda x: str(x))
+            group_df["Amplicon Sense End"].apply(lambda x: str(x))
+            group_df["PPC"].apply(lambda x: str(x))
             gdf = dd.from_pandas(group_df, npartitions = self.nCores)
             gdf.to_hdf(
                 path_or_buf = os.path.join(self.savedir, self.hdf_fname),
