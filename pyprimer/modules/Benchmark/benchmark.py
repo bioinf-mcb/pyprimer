@@ -207,7 +207,7 @@ class Benchmark(object):
             ).compute(scheduler = "processes")
             group_df = pd.concat(df_parts.tolist())
             print("Performance computed, generating group summary\n")
-            group_stats = generate_group_summary(group_df, group, SUMMARY_qPCR_COL_LIST)
+            group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
             print("Summary generated, saving group benchmark to HDF file\n")
             gdf = dd.from_pandas(group_df, npartitions = self.nCores)
