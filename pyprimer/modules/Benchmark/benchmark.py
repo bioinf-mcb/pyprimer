@@ -51,7 +51,7 @@ class Benchmark(object):
             v_stats = dict((key,[]) for key in col_list)
             for fversion in group_df["F Primer Version"].unique():
                 for rversion in group_df["R Primer Version"].unique():
-                    for pversion in group_df["P Primer Version"].unique():
+                    for pversion in group_df["P Probe Version"].unique():
                         mean_ppc = group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), "PPC"].mean()
                         seqs_matched = len(group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion) & (group_df["Amplicon Sense Length"] != 0), "Amplicon Sense Length"])
                         n_seqs = len(group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), "Amplicon Sense Length"])
