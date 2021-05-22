@@ -146,7 +146,7 @@ class Benchmark(object):
                                     start = f_good[0]
                                     f_match = f_good[1]
                                     end = (len(sequences[1]) - 1) - r_good[0]
-                                    r_match = r_good[0]
+                                    r_match = r_good[1]
                                     amplicon = sequences[1][start:end]
                                     amplicon_length = len(amplicon)
                                     p_ver = v[1]
@@ -160,8 +160,6 @@ class Benchmark(object):
                             r_match = ""
                             p_ver = ""
                             p_match = ""
-                            PPC = 0
-                        if (start == None) or (end == None):
                             PPC = 0
                         else:
                             PPC = TOOLS.calculate_PPC(F_primer=f_ver,
