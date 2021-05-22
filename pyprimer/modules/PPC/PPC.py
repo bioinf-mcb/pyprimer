@@ -51,8 +51,9 @@ class PPC(object):
                         deletions=0,
                         insertions=0,
                         substitutions=0,
-                        nCores=2) -> pd.DataFrame:
-        """Analyse effectiveness of the PCR primers against sequences.
+                        nCores=2):
+        """
+        Analyse effectiveness of the PCR primers against sequences.
 
         Args:
             deletions (int, optional): Number of deletions allowed in the target sequence. Defaults to 0.
@@ -63,9 +64,10 @@ class PPC(object):
         Returns:
             pd.DataFrame: Info about the group of primers with structure specified by SUMMARY_COL_LIST const.
         """
+
         unique_groups = self.primers["ID"].unique()
 
-        bench_df = pd.DataFrame(columns=self.COL_LIST)
+        # bench_df = pd.DataFrame(columns=self.COL_LIST)
         summary = pd.DataFrame(columns=self.SUMMARY_COL_LIST)
 
         filter_forward = self.primers["Type"] == "F"
@@ -166,15 +168,10 @@ class PPC(object):
         permute = True):
         
         def __calculate(x):
-            # print(x, 
-            #     f_versions, r_versions, p_versions, 
-            #     f_names, r_names, p_names,
-            #     deletions, insertions, substitutions, permute)
             return self._calculate_stats(x, 
                 f_versions, r_versions, p_versions, 
                 f_names, r_names, p_names,
                 deletions, insertions, substitutions, permute)
-        # print(group_name)
         if f_names is None:
             f_names = np.array([""]*len(f_versions))
         if r_names is None:
@@ -183,10 +180,9 @@ class PPC(object):
             p_names = np.array([""]*len(p_versions))
 
         dsequences = dd.from_pandas(self.sequences, npartitions=nCores)
-        # self.bar = tqdm(total=len(self.sequences))
         df_series = dsequences.map_partitions(
             lambda df: df.apply(__calculate, axis=1), meta=('df', None)
-            ).compute(scheduler='threads') #processes
+            ).compute(scheduler='processes') #processes
         
         print("Concatenating")
         group_df = pd.concat(df_series.tolist())
@@ -201,12 +197,13 @@ class PPC(object):
 
         group_stats = pd.DataFrame(v_stats, columns=self.SUMMARY_COL_LIST)
         del group_df
+        gc.collect()
         return group_stats
 
     def _calculate_stats(self, sequences,
         f_vers, r_vers, p_vers,
         f_names, r_names, p_names,
-        deletions, insertions, substitutions, permute) -> pd.DataFrame:
+        deletions, insertions, substitutions, permute):
         """Calculate statistics for sequence set for every possible primer version combination
 
         Args:
@@ -223,47 +220,8 @@ class PPC(object):
         """
         res = []
         header = sequences[0]
-        # print(header)
-        # self.bar.update()
-        # if permute:
-        #     for f_ver, f_name in zip(f_vers, f_names):
-        #         start, f_match = TOOLS.match_fuzzily(
-        #             f_ver, sequences[1], deletions, insertions, substitutions)
-
-        #         for r_ver, r_name in zip(r_vers, r_names):
-        #             if start is not None:
-        #                 r_start, r_match = TOOLS.match_fuzzily(
-        #                     r_ver, sequences[2], deletions, insertions, substitutions)
-        #                 try:
-        #                     end = len(sequences[1]) - 1 - r_start
-        #                 except TypeError:
-        #                     end = None
-                    
-        #             if start is None or end is None or end<0:
-        #                 amplicon = ""
-        #                 amplicon_length = 0
-        #                 start = None
-        #                 end = None
-        #                 PPC = 0
-        #             else:
-        #                 amplicon = sequences[1][start:end]
-        #                 amplicon_length = len(amplicon)
-
-        #                 PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-        #                                             F_match=f_match,
-        #                                             R_primer=r_ver,
-        #                                             R_match=r_match)
-
-        #             res.append([f_name, f_ver, r_name, r_ver,
-        #                                 header, amplicon, amplicon_length, start, end, PPC])
-
-        # else:
         for f_ver in f_vers:
             for r_ver in r_vers:
-                # f_ver = f_vers[primer_set]
-                # f_name = f_names[primer_set]
-                # r_ver = r_vers[primer_set]
-                # r_name = r_names[primer_set]
                 f_res = TOOLS.match_fuzzily(
                     f_ver, sequences[1], deletions, insertions, substitutions)
 
@@ -361,39 +319,8 @@ class PPC(object):
         res.append([f_name, f_ver, r_name, r_ver,
                     header, amplicon, amplicon_length, start, end, PPC])
                             
-                            
-
-
-
-
-
-            # if start is not None:
-            #     r_start, r_match = TOOLS.match_fuzzily(
-            #             r_ver, sequences[2], deletions, insertions, substitutions)
-            #     try:
-            #         end = (len(sequences[1]) - 1) - r_start
-            #     except TypeError:
-            #         end = None
-
-            # if start is None or end is None or end<0:
-            #     amplicon = ""
-            #     amplicon_length = 0
-            #     start = None
-            #     end = None
-            #     PPC = 0
-            # else:
-            #     amplicon = sequences[1][start:end]
-            #     amplicon_length = len(amplicon)
-
-            #     PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-            #                                 F_match=f_match,
-            #                                 R_primer=r_ver,
-            #                                 R_match=r_match)
-
-            # res.append([f_name, f_ver, r_name, r_ver,
-            #                     header, amplicon, amplicon_length, start, end, PPC])
-        # print("dupa")
         df = pd.DataFrame(res, columns=self.COL_LIST)
+        del res
         return df
 
     def _craft_summary(self, group_df: pd.DataFrame, group: str) -> dict:
