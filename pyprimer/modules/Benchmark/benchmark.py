@@ -125,11 +125,13 @@ class Benchmark(object):
                                     matches[f"{k_f}:{k_r}"] = (False, "")
                                 amplicon = sequences[1][start:end]
                                 for p in Ps:
-                                    p_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
+                                    p_ver = p[5]
+                                    p_name = p[2]
+                                    p_res = TOOLS.match_fuzzily(p_ver, sequences[1], deletions, insertions, substitutions)
                                     if p_res == None:
-                                        matches[f"{k_f}:{k_r}"] = (False, p)
+                                        matches[f"{k_f}:{k_r}"] = (False, p_ver)
                                     else:
-                                        matches[f"{k_f}:{k_r}"] = (True, p)
+                                        matches[f"{k_f}:{k_r}"] = (True, p_ver)
                         target_dist = np.Inf
                         n_match = 0
                         for k, v in matches.items():
