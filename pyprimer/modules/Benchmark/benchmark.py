@@ -207,6 +207,7 @@ class Benchmark(object):
             ).compute(scheduler = "processes")
             group_df = pd.concat(df_parts.tolist())
             group_df.reset_index(drop = True, inplace = True)
+            group_df.to_csv("./temp.csv", index = False)
             print("Performance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
