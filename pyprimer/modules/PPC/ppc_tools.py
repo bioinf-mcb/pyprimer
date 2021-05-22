@@ -12,7 +12,7 @@ class TOOLS:
                       sequence,
                       deletions=0,
                       insertions=0,
-                      substitutions=2) -> tuple((int, str)):
+                      substitutions=2):
         """Match strings fuzzily usign Levenshtein distance
 
         Arguments:
@@ -30,18 +30,26 @@ class TOOLS:
         """
         if pattern in sequence:
             start = sequence.index(pattern)
-            return start, pattern
+            return (start, pattern)
         else:
             result = find_near_matches(pattern,
                                        sequence,
                                        max_substitutions=substitutions,
                                        max_insertions=insertions,
                                        max_deletions=deletions)
-            if len(result) != 0:
-                idx_min = np.argmin([i.dist for i in result])
-                return result[idx_min].start, result[idx_min].matched
-            else:
-                return None, ""
+            return result
+            # if len(result) > 1:
+            #     dist_list = np.ndarray(shape = (len(result),))
+            #     for i in range(len(result)):
+            #         dist_list[i] = result[i].dist
+            #     idx_max = np.where(dist_list == np.max(dist_list))
+
+
+            # if len(result) != 0:
+            #     idx_max = np.argmax([i.dist for i in result])
+            #     return result[idx_max].start, result[idx_max].matched
+            # else:
+            #     return None, ""
 
     @staticmethod
     def calculate_PPC(F_primer, F_match, R_primer, R_match):
@@ -94,3 +102,4 @@ class _MemSaver:
                         mode="a",
                         format="table",
                         data_columns=True)
+        del group_df

@@ -6,7 +6,7 @@ from numba import jit, prange
 from tqdm import trange
 from tqdm import tqdm
 import h5py
-
+import gc
 import operator
 import dask.dataframe as dd
 import dask.multiprocessing
@@ -50,7 +50,7 @@ class PPC(object):
     def analyse_primers(self,
                         deletions=0,
                         insertions=0,
-                        substitutions=2,
+                        substitutions=0,
                         nCores=2) -> pd.DataFrame:
         """Analyse effectiveness of the PCR primers against sequences.
 
@@ -70,7 +70,7 @@ class PPC(object):
 
         filter_forward = self.primers["Type"] == "F"
         filter_reverse = self.primers["Type"] == "R"
-        filter_probe = self.primers["Type"] == "R"
+        filter_probe = self.primers["Type"] == "P"
 
         with tqdm(unique_groups) as pbar:
             for group in pbar:
@@ -91,14 +91,15 @@ class PPC(object):
                                     f_names, r_names, p_names,
                                     deletions, insertions, substitutions, nCores)
                 summary = summary.append(group_stats)
+                gc.collect()
         
         if self.memsave:
             print("Extended benchmark results were written to {}".format(
-                os.path.join(self._saver.tempdir, "PCRBenchmark.h5")))
+                self._saver.tempdir))
         
         return summary
 
-    def get_primer_metrics(self, F, R, P=None, deletions=0, insertions=0, substitutions=2, nCores=2):
+    def get_primer_metrics(self, F, R, P=None, deletions=0, insertions=0, substitutions=0, nCores=2):
         """Calculate Design Points for a primer or group of primers
 
         Args:
@@ -138,7 +139,7 @@ class PPC(object):
                 R_new.append("".join(i))
             R = np.asarray(R_new)
         
-        stats = self._calculate_group_summary(self.sequences, "DP", F, R, P, deletions=0, insertions=0, substitutions=2, nCores=nCores, permute=False)
+        stats = self._calculate_group_summary(self.sequences, "DP", F, R, P, deletions=deletions, insertions=insertions, substitutions=substitutions, nCores=nCores, permute=False)
 
         gc = []
         mean_ppc = []
@@ -161,7 +162,7 @@ class PPC(object):
     def _calculate_group_summary(self, sequences, group_name,         
         f_versions, r_versions, p_versions,
         f_names=None, r_names=None, p_names=None, 
-        deletions=0, insertions=0, substitutions=2, nCores=2,
+        deletions=0, insertions=0, substitutions=0, nCores=2,
         permute = True):
         
         def __calculate(x):
@@ -173,7 +174,7 @@ class PPC(object):
                 f_versions, r_versions, p_versions, 
                 f_names, r_names, p_names,
                 deletions, insertions, substitutions, permute)
-
+        # print(group_name)
         if f_names is None:
             f_names = np.array([""]*len(f_versions))
         if r_names is None:
@@ -185,7 +186,7 @@ class PPC(object):
         # self.bar = tqdm(total=len(self.sequences))
         df_series = dsequences.map_partitions(
             lambda df: df.apply(__calculate, axis=1), meta=('df', None)
-            ).compute(scheduler='processes')
+            ).compute(scheduler='threads') #processes
         
         print("Concatenating")
         group_df = pd.concat(df_series.tolist())
@@ -199,6 +200,7 @@ class PPC(object):
         print("Crafted summary")
 
         group_stats = pd.DataFrame(v_stats, columns=self.SUMMARY_COL_LIST)
+        del group_df
         return group_stats
 
     def _calculate_stats(self, sequences,
@@ -221,74 +223,176 @@ class PPC(object):
         """
         res = []
         header = sequences[0]
+        # print(header)
         # self.bar.update()
-        if permute:
-            for f_ver, f_name in zip(f_vers, f_names):
-                start, f_match = TOOLS.match_fuzzily(
+        # if permute:
+        #     for f_ver, f_name in zip(f_vers, f_names):
+        #         start, f_match = TOOLS.match_fuzzily(
+        #             f_ver, sequences[1], deletions, insertions, substitutions)
+
+        #         for r_ver, r_name in zip(r_vers, r_names):
+        #             if start is not None:
+        #                 r_start, r_match = TOOLS.match_fuzzily(
+        #                     r_ver, sequences[2], deletions, insertions, substitutions)
+        #                 try:
+        #                     end = len(sequences[1]) - 1 - r_start
+        #                 except TypeError:
+        #                     end = None
+                    
+        #             if start is None or end is None or end<0:
+        #                 amplicon = ""
+        #                 amplicon_length = 0
+        #                 start = None
+        #                 end = None
+        #                 PPC = 0
+        #             else:
+        #                 amplicon = sequences[1][start:end]
+        #                 amplicon_length = len(amplicon)
+
+        #                 PPC = TOOLS.calculate_PPC(F_primer=f_ver,
+        #                                             F_match=f_match,
+        #                                             R_primer=r_ver,
+        #                                             R_match=r_match)
+
+        #             res.append([f_name, f_ver, r_name, r_ver,
+        #                                 header, amplicon, amplicon_length, start, end, PPC])
+
+        # else:
+        for f_ver in f_vers:
+            for r_ver in r_vers:
+                # f_ver = f_vers[primer_set]
+                # f_name = f_names[primer_set]
+                # r_ver = r_vers[primer_set]
+                # r_name = r_names[primer_set]
+                f_res = TOOLS.match_fuzzily(
                     f_ver, sequences[1], deletions, insertions, substitutions)
 
-                for r_ver, r_name in zip(r_vers, r_names):
-                    if start is not None:
-                        r_start, r_match = TOOLS.match_fuzzily(
+                if len(f_res) != 0:
+                    r_res = TOOLS.match_fuzzily(
                             r_ver, sequences[2], deletions, insertions, substitutions)
-                        try:
-                            end = len(sequences[1]) - 1 - r_start
-                        except TypeError:
-                            end = None
-                    
-                    if start is None or end is None or end<0:
-                        amplicon = ""
-                        amplicon_length = 0
-                        start = None
-                        end = None
+                    match_dict = {
+                        "f_dist": np.Inf,
+                        "r_dist": np.Inf,
+                        "f_match": None,
+                        "r_match": None,
+                        "amplicon": "",
+                        "amplicon len": 0,
+                        "start": None,
+                        "end": None
+                    }
+
+                    if type(f_res) == type(tuple()):
+                        f_res = [f_res]
+                    if type(r_res) == type(tuple()):
+                        r_res = [r_res]
+                    for f_i in range(len(f_res)):
+                        for r_i in range(len(r_res)):
+                            f_dumm = f_res[f_i]
+                            r_dumm = r_res[r_i]
+                            if type(f_dumm) == type(tuple()):
+                                amp_start = f_dumm[0]
+                            else:
+                                amp_start = f_dumm.start
+                            if type(r_dumm) == type(tuple()):
+                                amp_end = (len(sequences[1]) - 1) - r_dumm[0]
+                            else:
+                                amp_end = (len(sequences[1]) - 1) - r_dumm.start
+                            if amp_end < amp_start:
+                                match_dict["f_match"] = None
+                                match_dict["r_match"] = None
+                                match_dict["start"] = None
+                                match_dict["end"] = None
+                                amplicon = ""
+                            else:
+                                amplicon = sequences[1][amp_start:amp_end]
+                            for p_ver in p_vers:
+                                if p_ver in amplicon:
+                                    if type(f_dumm) == type(tuple()):
+                                        min_f = 0
+                                    else:
+                                        min_f = f_dumm.dist
+                                    if type(r_dumm) == type(tuple()):
+                                        min_r = 0
+                                    else:
+                                        min_r = r_dumm.dist
+                                    if min_f < match_dict["f_dist"] and min_r < match_dict["r_dist"]:
+                                        if type(f_dumm) == type(tuple()):
+                                            match_dict["f_dist"] = 0
+                                            match_dict["f_match"] = f_dumm[1]
+                                        else:
+                                            match_dict["f_dist"] = f_dumm.dist
+                                            match_dict["f_match"] = f_dumm.matched
+                                        if type(r_dumm) == type(tuple()):
+                                            match_dict["r_dist"] = 0
+                                            match_dict["r_match"] = r_dumm[1]
+                                        else:
+                                            match_dict["r_dist"] = r_dumm.dist
+                                            match_dict["r_match"] = r_dumm.matched
+                                        match_dict["amplicon"] = amplicon
+                                        match_dict["amplicon len"] = len(amplicon)
+                                        if amp_end > amp_start:
+                                            match_dict["start"] = amp_start
+                                            match_dict["end"] = amp_end
+                    f_name = f_names[0]
+                    r_name = r_names[0]
+                    f_match = match_dict["f_match"]
+                    r_match = match_dict["r_match"]
+                    amplicon = match_dict["amplicon"]
+                    amplicon_length = match_dict["amplicon len"]
+                    start = match_dict["start"]
+                    end = match_dict["end"]
+                    if start == None or end == None:
                         PPC = 0
                     else:
-                        amplicon = sequences[1][start:end]
-                        amplicon_length = len(amplicon)
-
                         PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-                                                    F_match=f_match,
-                                                    R_primer=r_ver,
-                                                    R_match=r_match)
-
-                    res.append([f_name, f_ver, r_name, r_ver,
-                                        header, amplicon, amplicon_length, start, end, PPC])
-
-        else:
-            for primer_set in range(len(f_vers)):
-                f_ver = f_vers[primer_set]
-                f_name = f_names[primer_set]
-                r_ver = r_vers[primer_set]
-                r_name = r_names[primer_set]
-
-                start, f_match = TOOLS.match_fuzzily(
-                    f_ver, sequences[1], deletions, insertions, substitutions)
-
-                if start is not None:
-                    r_start, r_match = TOOLS.match_fuzzily(
-                            r_ver, sequences[2], deletions, insertions, substitutions)
-                    try:
-                        end = len(sequences[1]) - 1 - r_start
-                    except TypeError:
-                        end = None
-
-                if start is None or end is None or end<0:
-                    amplicon = ""
-                    amplicon_length = 0
-                    start = None
-                    end = None
-                    PPC = 0
-                else:
-                    amplicon = sequences[1][start:end]
-                    amplicon_length = len(amplicon)
-
-                    PPC = TOOLS.calculate_PPC(F_primer=f_ver,
                                                 F_match=f_match,
                                                 R_primer=r_ver,
                                                 R_match=r_match)
+                else:
+                    f_name = f_names[0]
+                    r_name = r_names[0]
+                    start = None
+                    end = None
+                    PPC = 0
+                    amplicon = ""
+                    amplicon_length = 0
+                    PPC = 0
 
-                res.append([f_name, f_ver, r_name, r_ver,
-                                    header, amplicon, amplicon_length, start, end, PPC])
+        res.append([f_name, f_ver, r_name, r_ver,
+                    header, amplicon, amplicon_length, start, end, PPC])
+                            
+                            
+
+
+
+
+
+            # if start is not None:
+            #     r_start, r_match = TOOLS.match_fuzzily(
+            #             r_ver, sequences[2], deletions, insertions, substitutions)
+            #     try:
+            #         end = (len(sequences[1]) - 1) - r_start
+            #     except TypeError:
+            #         end = None
+
+            # if start is None or end is None or end<0:
+            #     amplicon = ""
+            #     amplicon_length = 0
+            #     start = None
+            #     end = None
+            #     PPC = 0
+            # else:
+            #     amplicon = sequences[1][start:end]
+            #     amplicon_length = len(amplicon)
+
+            #     PPC = TOOLS.calculate_PPC(F_primer=f_ver,
+            #                                 F_match=f_match,
+            #                                 R_primer=r_ver,
+            #                                 R_match=r_match)
+
+            # res.append([f_name, f_ver, r_name, r_ver,
+            #                     header, amplicon, amplicon_length, start, end, PPC])
+        # print("dupa")
         df = pd.DataFrame(res, columns=self.COL_LIST)
         return df
 
@@ -307,14 +411,19 @@ class PPC(object):
         for fversion in group_df["F Primer Version"].unique():
             for rversion in group_df["R Primer Version"].unique():
                 filter_r_version = (group_df["R Primer Version"] == rversion)
-                filter_f_version = (group_df["F Primer Version"] == fversion)
+                filter_f_version = (group_df["F Primer Version"] == fversion) #FIX THIS SHIT
                 filter_matching = filter_r_version & filter_f_version
 
                 if np.sum(filter_matching)>0:
                     n_seqs = np.sum(filter_matching)
-                    seqs_matched = np.sum(filter_matching & (group_df["Amplicon Sense Length"] != 0))
+                    # seqs_matched = np.sum(filter_matching & (group_df["Amplicon Sense Length"] != 0))
+                    seqs_matched = np.sum(
+                        group_df.loc[filter_f_version & filter_r_version, "Amplicon Sense Length"].apply(
+                            lambda x: np.where(int(x) > 0, 1, 0)
+                        )
+                    )
 
-                    mean_ppc = group_df.loc[filter_matching, "PPC"].mean().round(5)
+                    mean_ppc = round(group_df.loc[filter_matching, "PPC"].mean(), 5)
                     
                     v_stats["Primer Group"].append(group)
                     v_stats["F Version"].append(fversion)
