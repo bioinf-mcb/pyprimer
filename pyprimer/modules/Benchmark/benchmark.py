@@ -99,8 +99,8 @@ class Benchmark(object):
                         amplicon_length = 0
                         f_match = ""
                         r_match = ""
-                        p_ver = ""
-                        p_match = ""
+                        p_ver = None
+                        p_match = None
                         PPC = 0
                     
                     else:
