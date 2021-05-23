@@ -10,7 +10,7 @@ if __name__ == "__main__":
     primers_df = pd.read_csv(f"{resdir}primers_df.csv")
 
     print("Reading sequences\n")
-    sequences_df = pd.read_csv(f"{resdir}sample_set.csv")
+    sequences_df = pd.read_csv(f"{resdir}sequence_df.csv")
 
     #print("Sampling sequences\n")
     #sequences_df = sequences_df.iloc[:10001,:]

@@ -202,7 +202,7 @@ class Benchmark(object):
             Ps = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "P"),:].values
             df_parts = self.sequences.map_partitions(
                 lambda df: df.apply(help_analyse, axis = 1), meta=('df', None)
-            ).compute(scheduler = "processes")
+            ).compute(scheduler = "threads")
             group_df = pd.concat(df_parts.tolist())
             group_df.reset_index(drop = True, inplace = True)
             print("Performance computed, generating group summary\n")
