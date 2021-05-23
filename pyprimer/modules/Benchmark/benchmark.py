@@ -224,7 +224,7 @@ class Benchmark(object):
             #     lambda df: df.apply(help_analyse, axis = 1), meta=('df', None)
             # ).compute(scheduler = "threads")
             #############################Experimental method##############################
-            futures = client.map(help_analyse, df_parts, pure=False)
+            futures = client.map(help_analyse, df_parts)
             progress(futures)
             group_df = pd.DataFrame(columns = self.BENCHMARK_qPCR_COL_LIST)
             for element in client.gather(futures):
@@ -253,7 +253,7 @@ class Benchmark(object):
                 data_columns = True
             )
             #############################Experimental method##############################
-            client.restart()
+            client.cancel(futures)
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
