@@ -2,6 +2,7 @@ from pyprimer.modules.Benchmark import benchmark
 import os
 import pandas as pd
 import psutil
+import time
 
 if __name__ == "__main__":
     resdir = "/storage/BINF/PawelLab/mkowalski/mkowalski/GitHub/"
@@ -11,14 +12,15 @@ if __name__ == "__main__":
     print("Reading primers\n")
     primers_df = pd.read_csv(f"{resdir}primers_df.csv")
 
-    print("Reading sequences\n")
-    sequences_df = pd.read_csv(f"{resdir}sequence_df.csv")#sequence_df.csv
+    # print("Reading sequences\n")
+    sequences_df = pd.DataFrame()
+    # sequences_df = pd.read_csv(f"{resdir}sample_set.csv")#sequence_df.csv
     # sequences_df = sequences_df.iloc[:1000,:]
-
+    # wait_time = 60 * 60 * 3 #two hours for completion of data preparation 
     #print("Sampling sequences\n")
     #sequences_df = sequences_df.iloc[:10001,:]
     #sequences_df.to_csv(f"{resdir}sample_set.csv", index = False)
-    print("Running benchmark")
+    # time.sleep(wait_time)
     runner = benchmark.Benchmark(primers_df, sequences_df, savedir = resdir, tmpdir = tmpdir, nCores = psutil.cpu_count())
     runner.qPCR_performance()
     print("done")

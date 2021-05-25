@@ -56,23 +56,34 @@ class Benchmark(object):
         self.tmpdir = tmpdir
         self.savedir = savedir
         print("Preparing data chunks")
-        os.makedirs(self.tmpdir, exist_ok = True)
-        chunkpaths = []
-        chunk_size = (sequence_df.shape[0] // self.nCores) + 1
-        id_min = 0
-        id_max = chunk_size
-        for chunk in range(self.nCores):
-            if id_max < sequence_df.shape[0]:
-                part = sequence_df.iloc[id_min:id_max, :]
+        try:
+            flist = os.listdir(self.tmpdir)
+            if len(flist) >= 1:
+                chunkpaths = [os.path.join(self.tmpdir,f) for f in flist]
+                self.chunkpaths = chunkpaths
+                del sequence_df
             else:
-                part = sequence_df.iloc[id_min:, :]
-            id_min += chunk_size
-            id_max += chunk_size
-            fpath = os.path.join(self.tmpdir,f"chunk_{chunk}.csv")
-            chunkpaths.append(fpath)
-            part.to_csv(fpath, index = False)
-        self.chunkpaths = chunkpaths
-        del sequence_df
+                raise ValueError()
+        except:
+            os.makedirs(self.tmpdir, exist_ok = True)
+            chunkpaths = []
+            chunk_size = (sequence_df.shape[0] // self.nCores) + 1
+            id_min = 0
+            id_max = chunk_size
+            for chunk in range(self.nCores):
+                if id_max < sequence_df.shape[0]:
+                    part = sequence_df.iloc[id_min:id_max, :]
+                elif id_min > sequence_df.shape[0]:
+                    break
+                else:
+                    part = sequence_df.iloc[id_min:, :]
+                id_min += chunk_size
+                id_max += chunk_size
+                fpath = os.path.join(self.tmpdir,f"chunk_{chunk}.csv")
+                chunkpaths.append(fpath)
+                part.to_csv(fpath, index = False)
+            self.chunkpaths = chunkpaths
+        
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
                          hdf_fname = 'pyprimer_benchmark.h5', csv_fname = "pyprimer_summary.csv",):
@@ -107,112 +118,114 @@ class Benchmark(object):
                     else:
                         for f in Fs:
                             for r in Rs:
-                                header = sequences[0]
-                                f_name = f[2]
-                                r_name = r[2]
-                                f_ver = f[5]
-                                r_ver = r[5]
-                                f_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
-                                r_res = TOOLS.match_fuzzily(r_ver, sequences[2], deletions, insertions, substitutions)
+                                for p in Ps:
+                                    header = sequences[0]
+                                    f_name = f[2]
+                                    p_name = p[2]
+                                    r_name = r[2]
+                                    f_ver = f[5]
+                                    p_ver = p[5]
+                                    r_ver = r[5]
+                                    f_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
+                                    r_res = TOOLS.match_fuzzily(r_ver, sequences[2], deletions, insertions, substitutions)
 
-                                # if (type(f_res) == type(tuple())) and (type(r_res) == type(tuple())):
-                                #     start = f_res[0]
-                                #     r_start = r_res[0]
-                                #     end = (len(sequences[1]) - 1) - r_start
-                                #     f_match = f_ver
-                                #     r_match = r_ver
-                                #     if start < end:
-                                #         amplicon = sequences[1][start:end]
-                                #         amplicon_length = len(amplicon)
-                                #     else:
-                                #         amplicon = ""
-                                #         amplicon_length = 0
-                                
-                                if (f_res == None) or (r_res == None):
-                                    start = None
-                                    end = None
-                                    amplicon = ""
-                                    amplicon_length = 0
-                                    f_match = ""
-                                    r_match = ""
-                                    p_ver = p_ver = " : ".join([p[5] for p in Ps])
-                                    p_match = ""
-                                    PPC = 0
-                                
-                                else:
-                                    Forwards = {}
-                                    if type(f_res) == type(tuple()):
-                                        Forwards[0] = (f_res[0], f_ver, 0) # (start, match, distance)
-                                    else:
-                                        for f_i in range(f_res):
-                                            Forwards[f_i] = (f_res[f_i].start, f_res[f_i].matched, f_res[f_i].dist)
-                                    Reverses = {}
-                                    if type(r_res) == type(tuple()):
-                                        Reverses[0] = (r_res[0], r_ver, 0)
-                                    else:
-                                        for r_i in range(r_res):
-                                            Reverses[r_i] = (r_res[r_i].start, r_res[f_i].matched, r_res[f_i].dist)
-                                    matches = {}
-                                    for k_f, v_f in Forwards.items():
-                                        start = v_f[0]
-                                        for k_r, v_r in Reverses.items():
-                                            for p in Ps:
-                                                p_ver = p[5]
-                                                p_name = p[2]
-                                                end = (len(sequences[1]) - 1) - v_r[0]
-                                                if end < start:
-                                                    matches[f"{k_f}:{k_r}"] = (False, p_ver)
-                                                amplicon = sequences[1][start:end]
-                                                p_res = TOOLS.match_fuzzily(p_ver, sequences[1], deletions, insertions, substitutions)
-                                                if p_res == None:
-                                                    matches[f"{k_f}:{k_r}"] = (False, p_ver)
-                                                else:
-                                                    matches[f"{k_f}:{k_r}"] = (True, p_ver)
-                                    target_dist = np.Inf
-                                    n_match = 0
-                                    p_matched_list = []
-                                    for k, v in matches.items():
-                                        if v[0] == True:
-                                            n_match += 1
-                                            klist = k.split(":")
-                                            k_f = int(klist[0])
-                                            k_r = int(klist[1])
-                                            f_good = Forwards[k_f]
-                                            r_good = Reverses[k_r]
-                                            mean_dist = (f_good[2] + r_good[2] + 1e-6)/2 # 1e-6 for smoothing
-                                            if mean_dist < target_dist:
-                                                target_dist = mean_dist
-                                                start = f_good[0]
-                                                f_match = f_good[1]
-                                                end = (len(sequences[1]) - 1) - r_good[0]
-                                                r_match = r_good[1]
-                                                amplicon = sequences[1][start:end]
-                                                amplicon_length = len(amplicon)
-                                                if p_ver not in p_matched_list:
-                                                    p_matched_list.append(p_ver)
-                                    if len(p_matched_list) == 1:
-                                        p_ver = p_matched_list[0]
-                                    if len(p_matched_list) > 1:
-                                        p_ver = " : ".join(p_matched_list)
-                                    if n_match == 0:
+                                    # if (type(f_res) == type(tuple())) and (type(r_res) == type(tuple())):
+                                    #     start = f_res[0]
+                                    #     r_start = r_res[0]
+                                    #     end = (len(sequences[1]) - 1) - r_start
+                                    #     f_match = f_ver
+                                    #     r_match = r_ver
+                                    #     if start < end:
+                                    #         amplicon = sequences[1][start:end]
+                                    #         amplicon_length = len(amplicon)
+                                    #     else:
+                                    #         amplicon = ""
+                                    #         amplicon_length = 0
+                                    
+                                    if (f_res == None) or (r_res == None):
                                         start = None
                                         end = None
                                         amplicon = ""
                                         amplicon_length = 0
                                         f_match = ""
                                         r_match = ""
-                                        p_ver = " : ".join([p[5] for p in Ps])
                                         p_match = ""
                                         PPC = 0
+                                    
                                     else:
-                                        PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-                                                                F_match=f_match,
-                                                                R_primer=r_ver,
-                                                                R_match=r_match)
+                                        Forwards = {}
+                                        if type(f_res) == type(tuple()):
+                                            Forwards[0] = (f_res[0], f_ver, 0) # (start, match, distance)
+                                        else:
+                                            for f_i in range(f_res):
+                                                Forwards[f_i] = (f_res[f_i].start, f_res[f_i].matched, f_res[f_i].dist)
+                                        Reverses = {}
+                                        if type(r_res) == type(tuple()):
+                                            Reverses[0] = (r_res[0], r_ver, 0)
+                                        else:
+                                            for r_i in range(r_res):
+                                                Reverses[r_i] = (r_res[r_i].start, r_res[f_i].matched, r_res[f_i].dist)
+                                        matches = {}
+                                        for k_f, v_f in Forwards.items():
+                                            start = v_f[0]
+                                            for k_r, v_r in Reverses.items():
+                                                end = (len(sequences[1]) - 1) - v_r[0]
+                                                if end < start:
+                                                    matches[f"{k_f}:{k_r}"] = False
+                                                amplicon = sequences[1][start:end]
+                                                if len(amplicon) > 850:
+                                                    matches[f"{k_f}:{k_r}"] = False
+                                                else:
+                                                    p_res = TOOLS.match_fuzzily(p_ver, amplicon, deletions, insertions, substitutions)
+                                                    if p_res == None:
+                                                        matches[f"{k_f}:{k_r}"] = False
+                                                    else:
+                                                        matches[f"{k_f}:{k_r}"] = True
+                                        target_dist = np.Inf
+                                        n_match = 0
+                                        for k, v in matches.items():
+                                            if v:
+                                                n_match += 1
+                                                klist = k.split(":")
+                                                k_f = int(klist[0])
+                                                k_r = int(klist[1])
+                                                f_good = Forwards[k_f]
+                                                r_good = Reverses[k_r]
+                                                mean_dist = (f_good[2] + r_good[2] + 1e-6)/2 # 1e-6 for smoothing
+                                                if mean_dist < target_dist:
+                                                    target_dist = mean_dist
+                                                    start = f_good[0]
+                                                    f_match = f_good[1]
+                                                    end = (len(sequences[1]) - 1) - r_good[0]
+                                                    r_match = r_good[1]
+                                                    amplicon = sequences[1][start:end]
+                                                    amplicon_length = len(amplicon)
+                                                    if amplicon_length > 850:
+                                                        n_match -= 1
+                                                        start = None
+                                                        end = None
+                                                        amplicon = ""
+                                                        amplicon_length = 0
+                                                        f_match = ""
+                                                        r_match = ""
+                                                        PPC = 0
+                                        if n_match <= 0:
+                                            start = None
+                                            end = None
+                                            amplicon = ""
+                                            amplicon_length = 0
+                                            f_match = ""
+                                            r_match = ""
+                                            PPC = 0
+                                        else:
+                                            PPC = TOOLS.calculate_PPC(F_primer=f_ver,
+                                                                    F_match=f_match,
+                                                                    R_primer=r_ver,
+                                                                    R_match=r_match)
 
-                                res.append([f_name, f_ver, f_name, p_ver,
-                                            r_name, r_ver, header, amplicon,
-                                            amplicon_length, start, end, PPC])
+                                    res.append([f_name, f_ver, p_name, p_ver,
+                                                r_name, r_ver, header, amplicon,
+                                                amplicon_length, start, end, PPC])
             res_df = pd.DataFrame(res, columns = col_list)
             return res_df
 
@@ -228,6 +241,7 @@ class Benchmark(object):
         summary = pd.DataFrame(columns = self.SUMMARY_qPCR_COL_LIST)
         os.makedirs(self.savedir, exist_ok = True)
         #############################Experimental method##############################
+        print("Running Benchmark")
         cluster = LocalCluster(n_workers = self.nCores, threads_per_worker = 4, silence_logs=logging.ERROR)
         client = Client(cluster)# "192.168.45.241:8786"
         ##############################################################################
@@ -270,8 +284,20 @@ class Benchmark(object):
                 scheduler = client,
                 data_columns = True
             )
+            # time.sleep(2)
             #############################Experimental method##############################
             client.restart()
+            # print(client)
+            # client.cancel(group_df)
+            # client.cancel(Fs)
+            # client.cancel(Rs)
+            # client.cancel(Ps)
+            # client.cancel(futures)
+            # client.cancel(result_chunks)
+            # client.cancel(gdf)
+            # client.cancel(group_stats)
+            # client.cancel(help_analyse)
+            time.sleep(8)
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")

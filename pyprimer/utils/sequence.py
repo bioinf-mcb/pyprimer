@@ -8,6 +8,7 @@ from numba import jit
 from enum import Enum
 from .essentials import Essentials
 import tqdm
+from tqdm import trange
 
 class READ_MODES(Enum):
     CSV = 1
