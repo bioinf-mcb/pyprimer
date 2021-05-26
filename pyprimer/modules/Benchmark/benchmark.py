@@ -32,9 +32,7 @@ class Benchmark(object):
     BENCHMARK_qPCR_COL_LIST = [
                 "F Primer Name",
                 "F Primer Version",
-                "P Probe Name",
                 "P Probe Version",
-                "R Primer Name",
                 "R Primer Version",
                 "Sequence Header",
                 "Amplicon Sense",
@@ -121,8 +119,6 @@ class Benchmark(object):
                                 for p in Ps:
                                     header = sequences[0]
                                     f_name = f[2]
-                                    p_name = p[2]
-                                    r_name = r[2]
                                     f_ver = f[5]
                                     p_ver = p[5]
                                     r_ver = r[5]
@@ -223,8 +219,8 @@ class Benchmark(object):
                                                                     R_primer=r_ver,
                                                                     R_match=r_match)
 
-                                    res.append([f_name, f_ver, p_name, p_ver,
-                                                r_name, r_ver, header, amplicon,
+                                    res.append([f_name, f_ver, p_ver,
+                                                r_ver, header, amplicon,
                                                 amplicon_length, start, end, PPC])
             res_df = pd.DataFrame(res, columns = col_list)
             del res
@@ -289,7 +285,7 @@ class Benchmark(object):
             #     scheduler = "threads",
             #     data_columns = True
             # )
-            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "uncompressed")
+            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
             del group_df
             del group_stats
             del result_chunks
