@@ -227,6 +227,7 @@ class Benchmark(object):
                                                 r_name, r_ver, header, amplicon,
                                                 amplicon_length, start, end, PPC])
             res_df = pd.DataFrame(res, columns = col_list)
+            del res
             return res_df
 
         self.hdf_fname = hdf_fname
@@ -266,9 +267,10 @@ class Benchmark(object):
             print("\nPerformance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
-            time.sleep(5)
-            client.restart()
-            time.sleep(5)
+            # time.sleep(5)
+            # client.restart()
+            # time.sleep(5)
+            client.cancel(futures)
             print("Summary generated, saving group benchmark to Feater\n")
             # group_df["Amplicon Sense Length"].apply(lambda x: str(x))
             # group_df["Amplicon Sense Start"].apply(lambda x: str(x))
@@ -288,6 +290,9 @@ class Benchmark(object):
             #     data_columns = True
             # )
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "uncompressed")
+            del group_df
+            del group_stats
+            del result_chunks
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
