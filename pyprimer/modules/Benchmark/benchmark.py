@@ -267,6 +267,8 @@ class Benchmark(object):
             # client.restart()
             # time.sleep(5)
             client.cancel(futures)
+            del group_stats
+            del result_chunks
             print("Summary generated, saving group benchmark to Feater\n")
             # group_df["Amplicon Sense Length"].apply(lambda x: str(x))
             # group_df["Amplicon Sense Start"].apply(lambda x: str(x))
@@ -287,8 +289,6 @@ class Benchmark(object):
             # )
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
             del group_df
-            del group_stats
-            del result_chunks
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
