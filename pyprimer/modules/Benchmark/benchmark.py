@@ -86,7 +86,7 @@ class Benchmark(object):
         
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
-                         hdf_fname = 'pyprimer_benchmark.h5', csv_fname = "pyprimer_summary.csv",):
+                         hdf_fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
         def generate_group_summary(group_df, group, col_list):
             v_stats = dict((key,[]) for key in col_list)
             for fversion in group_df["F Primer Version"].unique():
@@ -157,14 +157,14 @@ class Benchmark(object):
                                         if type(f_res) == type(tuple()):
                                             Forwards[0] = (f_res[0], f_ver, 0) # (start, match, distance)
                                         else:
-                                            for f_i in range(f_res):
+                                            for f_i in range(len(f_res)):
                                                 Forwards[f_i] = (f_res[f_i].start, f_res[f_i].matched, f_res[f_i].dist)
                                         Reverses = {}
                                         if type(r_res) == type(tuple()):
                                             Reverses[0] = (r_res[0], r_ver, 0)
                                         else:
-                                            for r_i in range(r_res):
-                                                Reverses[r_i] = (r_res[r_i].start, r_res[f_i].matched, r_res[f_i].dist)
+                                            for r_i in range(len(r_res)):
+                                                Reverses[r_i] = (r_res[r_i].start, r_res[r_i].matched, r_res[r_i].dist)
                                         matches = {}
                                         for k_f, v_f in Forwards.items():
                                             start = v_f[0]
@@ -243,7 +243,7 @@ class Benchmark(object):
         #############################Experimental method##############################
         print("Running Benchmark")
         cluster = LocalCluster(n_workers = self.nCores, threads_per_worker = 4, silence_logs=logging.ERROR)
-        client = Client(cluster)# "192.168.45.241:8786"
+        client = Client(cluster, timeout = 120)# "192.168.45.241:8786"
         ##############################################################################
         for group in tqdm(unique_groups):
             def help_analyse(x):
@@ -266,38 +266,28 @@ class Benchmark(object):
             print("\nPerformance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
-            print("Summary generated, saving group benchmark to HDF file\n")
+            time.sleep(5)
+            client.restart()
+            time.sleep(5)
+            print("Summary generated, saving group benchmark to Feater\n")
             # group_df["Amplicon Sense Length"].apply(lambda x: str(x))
             # group_df["Amplicon Sense Start"].apply(lambda x: str(x))
             # group_df["Amplicon Sense End"].apply(lambda x: str(x))
             # group_df["PPC"].apply(lambda x: str(x))
-            group_df = group_df.astype(str)
-            gdf = dd.from_pandas(group_df, npartitions = self.nCores)
-            gdf.to_hdf(
-                path_or_buf = os.path.join(self.savedir, self.hdf_fname),
-                key = group,
-                mode = "a",
-                complevel = 0,
-                format = "table",
-                errors = "ignore",
-                min_itemsize = 850,
-                scheduler = client,
-                data_columns = True
-            )
-            # time.sleep(2)
-            #############################Experimental method##############################
-            client.restart()
-            # print(client)
-            # client.cancel(group_df)
-            # client.cancel(Fs)
-            # client.cancel(Rs)
-            # client.cancel(Ps)
-            # client.cancel(futures)
-            # client.cancel(result_chunks)
-            # client.cancel(gdf)
-            # client.cancel(group_stats)
-            # client.cancel(help_analyse)
-            time.sleep(8)
+            # group_df = group_df.astype(str)
+            # gdf = dd.from_pandas(group_df, npartitions = self.nCores)
+            # gdf.to_hdf(
+            #     path_or_buf = os.path.join(self.savedir, self.hdf_fname),
+            #     key = group,
+            #     mode = "a",
+            #     complevel = 0,
+            #     format = "table",
+            #     errors = "ignore",
+            #     min_itemsize = 850,
+            #     scheduler = "threads",
+            #     data_columns = True
+            # )
+            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "uncompressed")
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
