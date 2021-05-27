@@ -291,6 +291,7 @@ class Benchmark(object):
             # group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
             with open(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), "wb") as handle:
                 pickle.dump(group_df, handle)
+            print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
             del group_df
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
