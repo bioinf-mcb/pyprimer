@@ -2,6 +2,7 @@
 import pandas as pd
 import csv
 import numpy as np
+import pickle
 import os
 from numba import jit, prange
 from tqdm import trange
@@ -84,7 +85,7 @@ class Benchmark(object):
         
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
-                         hdf_fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
+                         hdf_fname = 'pyprimer_benchmark.pickle', csv_fname = "pyprimer_summary.csv",):
         def generate_group_summary(group_df, group, col_list):
             v_stats = dict((key,[]) for key in col_list)
             for fversion in group_df["F Primer Version"].unique():
@@ -287,7 +288,9 @@ class Benchmark(object):
             #     scheduler = "threads",
             #     data_columns = True
             # )
-            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
+            # group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
+            with open(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), "wb") as handle:
+                pickle.dump(group_df, handle)
             del group_df
             ##############################################################################
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
