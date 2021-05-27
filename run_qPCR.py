@@ -5,7 +5,7 @@ import psutil
 import time
 
 if __name__ == "__main__":
-    resdir = "/storage/BINF/PawelLab/mkowalski/mkowalski/GitHub/"
+    resdir = "/storage/BINF/PawelLab/mkowalski/mkowalski/PrimerValidation/"
     tmpdir = os.path.join(resdir, "tmp")
     os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
@@ -22,5 +22,5 @@ if __name__ == "__main__":
     #sequences_df.to_csv(f"{resdir}sample_set.csv", index = False)
     # time.sleep(wait_time)
     runner = benchmark.Benchmark(primers_df, sequences_df, savedir = resdir, tmpdir = tmpdir, nCores = psutil.cpu_count())
-    runner.qPCR_performance()
+    runner.qPCR_performance(deletions = 0, insertions = 0, substitutions = 0)
     print("done")

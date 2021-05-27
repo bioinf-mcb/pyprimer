@@ -85,7 +85,7 @@ class Benchmark(object):
         
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
-                         hdf_fname = 'pyprimer_benchmark.pickle', csv_fname = "pyprimer_summary.csv",):
+                         fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
         def generate_group_summary(group_df, group, col_list):
             v_stats = dict((key,[]) for key in col_list)
             for fversion in group_df["F Primer Version"].unique():
@@ -126,19 +126,6 @@ class Benchmark(object):
                                     f_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
                                     r_res = TOOLS.match_fuzzily(r_ver, sequences[2], deletions, insertions, substitutions)
 
-                                    # if (type(f_res) == type(tuple())) and (type(r_res) == type(tuple())):
-                                    #     start = f_res[0]
-                                    #     r_start = r_res[0]
-                                    #     end = (len(sequences[1]) - 1) - r_start
-                                    #     f_match = f_ver
-                                    #     r_match = r_ver
-                                    #     if start < end:
-                                    #         amplicon = sequences[1][start:end]
-                                    #         amplicon_length = len(amplicon)
-                                    #     else:
-                                    #         amplicon = ""
-                                    #         amplicon_length = 0
-                                    
                                     if (f_res == None) or (r_res == None):
                                         start = None
                                         end = None
@@ -227,22 +214,19 @@ class Benchmark(object):
             del res
             return res_df
 
-        self.hdf_fname = hdf_fname
+        self.fname = fname
         self.csv_fname = csv_fname
         self.deletions = deletions
         self.insertions = insertions
         self.substitutions = substitutions
 
         unique_groups = self.primers["ID"].unique()
-        # bench_df = pd.DataFrame(columns = self.BENCHMARK_qPCR_COL_LIST)
-        # bench = dd.from_pandas(bench_df, npartitions = self.nCores)
         summary = pd.DataFrame(columns = self.SUMMARY_qPCR_COL_LIST)
         os.makedirs(self.savedir, exist_ok = True)
-        #############################Experimental method##############################
         print("Running Benchmark")
         cluster = LocalCluster(n_workers = self.nCores, threads_per_worker = 4, silence_logs=logging.ERROR)
-        client = Client(cluster, timeout = 120)# "192.168.45.241:8786"
-        ##############################################################################
+        client = Client(cluster, timeout = 120)
+
         for group in tqdm(unique_groups):
             def help_analyse(x):
                 return analyse(x, Fs, Rs, Ps, self.BENCHMARK_qPCR_COL_LIST,
@@ -251,51 +235,22 @@ class Benchmark(object):
             Rs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "R"),:].values
             Ps = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "P"),:].values
             print(f"Processing group {group}\n")
-            # df_parts = self.sequences.map_partitions(
-            #     lambda df: df.apply(help_analyse, axis = 1), meta=('df', None)
-            # ).compute(scheduler = "threads")
-            #############################Experimental method##############################
             futures = client.map(help_analyse, self.chunkpaths)
             progress(futures)
             result_chunks = client.gather(futures)
             group_df = pd.concat(result_chunks)
-            ##############################################################################
             group_df.reset_index(drop = True, inplace = True)
             print("\nPerformance computed, generating group summary\n")
             group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
             summary = summary.append(group_stats)
-            # time.sleep(5)
-            # client.restart()
-            # time.sleep(5)
             client.cancel(futures)
             del group_stats
             del result_chunks
-            print("Summary generated, saving group benchmark to Feater\n")
-            # group_df["Amplicon Sense Length"].apply(lambda x: str(x))
-            # group_df["Amplicon Sense Start"].apply(lambda x: str(x))
-            # group_df["Amplicon Sense End"].apply(lambda x: str(x))
-            # group_df["PPC"].apply(lambda x: str(x))
-            # group_df = group_df.astype(str)
-            # gdf = dd.from_pandas(group_df, npartitions = self.nCores)
-            # gdf.to_hdf(
-            #     path_or_buf = os.path.join(self.savedir, self.hdf_fname),
-            #     key = group,
-            #     mode = "a",
-            #     complevel = 0,
-            #     format = "table",
-            #     errors = "ignore",
-            #     min_itemsize = 850,
-            #     scheduler = "threads",
-            #     data_columns = True
-            # )
-            # group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), compression = "lz4", compression_level = 1)
-            with open(os.path.join(self.tmpdir, f"{group}_"+self.hdf_fname), "wb") as handle:
-                pickle.dump(group_df, handle)
-            print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
+            print("Summary generated, saving group benchmark to Feather\n")
+            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
+            print(f"Benchmark results saved to {os.path.join(self.savedir, self.fname)}\n")
             del group_df
-            ##############################################################################
+
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
-        print(f"Benchmark results saved to {os.path.join(self.savedir, self.hdf_fname)}\n")
+        print(f"Benchmark results saved to {os.path.join(self.savedir, self.fname)}\n")
         print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
-
-
