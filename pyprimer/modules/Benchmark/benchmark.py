@@ -248,7 +248,7 @@ class Benchmark(object):
             del result_chunks
             print("Summary generated, saving group benchmark to Feather\n")
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
-            print(f"Benchmark results saved to {os.path.join(self.tmpdir, f"{group}_"+self.fname)}\n")
+            print(f"Benchmark results saved to {os.path.join(self.tmpdir, group_+self.fname)}\n")
             del group_df
 
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
