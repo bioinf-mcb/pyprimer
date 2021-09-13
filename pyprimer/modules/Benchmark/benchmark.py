@@ -50,7 +50,7 @@ class Benchmark(object):
                         "Sequences matched(%)"]
 
     def __init__(self, primer_df, sequence_df, savedir = "./results", tmpdir = "./tmp", nCores = 4):
-        self.primers = primer_df
+        self.primers = pd.read_csv(primer_df)
         self.nCores = nCores
         self.tmpdir = tmpdir
         self.savedir = savedir
@@ -60,10 +60,10 @@ class Benchmark(object):
             if len(flist) >= 1:
                 chunkpaths = [os.path.join(self.tmpdir,f) for f in flist]
                 self.chunkpaths = chunkpaths
-                del sequence_df
             else:
                 raise ValueError()
         except:
+            sequence_df = pd.read_csv(sequence_df)
             os.makedirs(self.tmpdir, exist_ok = True)
             chunkpaths = []
             chunk_size = (sequence_df.shape[0] // self.nCores) + 1
@@ -82,7 +82,8 @@ class Benchmark(object):
                 chunkpaths.append(fpath)
                 part.to_csv(fpath, index = False)
             self.chunkpaths = chunkpaths
-        
+            del sequence_df
+
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
                          fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
@@ -248,7 +249,7 @@ class Benchmark(object):
             del result_chunks
             print("Summary generated, saving group benchmark to Feather\n")
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
-            print(f"Benchmark results saved to {os.path.join(self.tmpdir, group_+self.fname)}\n")
+            print(f"Benchmark results saved to {os.path.join(self.tmpdir, group + '_' + self.fname)}\n")
             del group_df
 
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
