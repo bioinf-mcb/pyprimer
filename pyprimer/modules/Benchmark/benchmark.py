@@ -24,12 +24,13 @@ import tables
 from contextlib import suppress
 from distributed.comm.core import CommClosedError
 import logging
+import glob
+
 warnings.simplefilter('ignore', tables.NaturalNameWarning)
 warnings.simplefilter('ignore', tables.PerformanceWarning)
 warnings.simplefilter("ignore", UserWarning)
 
 class Benchmark(object):
-
     BENCHMARK_qPCR_COL_LIST = [
                 "F Primer Name",
                 "F Primer Version",
@@ -63,7 +64,11 @@ class Benchmark(object):
             else:
                 raise ValueError()
         except:
-            sequence_df = pd.read_csv(sequence_df)
+            try:
+                sequence_df = pd.read_csv(sequence_df)
+            except TypeError:
+                # seq_df is already a dataframe
+                pass
             os.makedirs(self.tmpdir, exist_ok = True)
             chunkpaths = []
             chunk_size = (sequence_df.shape[0] // self.nCores) + 1
@@ -84,6 +89,9 @@ class Benchmark(object):
             self.chunkpaths = chunkpaths
             del sequence_df
 
+    def _cleanup(self):
+        for i in glob.glob(f"{self.tmpdir}/*"):
+            os.remove(i)
 
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
                          fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
@@ -248,9 +256,11 @@ class Benchmark(object):
             del group_stats
             del result_chunks
             print("Summary generated, saving group benchmark to Feather\n")
-            group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
-            print(f"Benchmark results saved to {os.path.join(self.tmpdir, group + '_' + self.fname)}\n")
+            group_df.to_feather(os.path.join(self.savedir, f"{group}_"+self.fname), compression = "uncompressed")
+            print(f"Benchmark results saved to {os.path.join(self.savedir, group + '_' + self.fname)}\n")
             del group_df
 
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
         print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
+
+        self._cleanup()

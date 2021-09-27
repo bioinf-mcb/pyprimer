@@ -1,6 +1,6 @@
 import os
 from fuzzysearch import find_near_matches
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 import numpy as np
 import warnings
 import tables
@@ -17,8 +17,8 @@ class TOOLS:
             start = sequence.index(pattern)
             return (start, pattern)
         else:
-            result = find_near_matches(pattern,
-                                       sequence,
+            result = find_near_matches(pattern.encode(),
+                                       sequence.encode(),
                                        max_substitutions=substitutions,
                                        max_insertions=insertions,
                                        max_deletions=deletions)
