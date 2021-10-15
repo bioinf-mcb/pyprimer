@@ -1,6 +1,6 @@
 import os
 from fuzzysearch import find_near_matches
-from rapidfuzz import fuzz
+from fuzzywuzzy import fuzz
 import numpy as np
 import warnings
 import tables

@@ -133,8 +133,65 @@ class PCRPrimer(object):
 class Sequence(object):
     def __init__(self, mode):
         self.mode = mode
+    
+    def _process_fastalist(self, fastalist):
+        seriesdict = {"Header": [], "Sense Sequence": [],
+                          "Antisense Sequence": [], "Length": [], "N(%)": []}
+            
+        idx = 0
+        for element in fastalist:
+            element_list = element.split("\n")
+            header = element_list[0].replace(">", "")
+            sequence = ("").join(
+                element_list[1:]).replace("-", "N").upper()
+            del element_list
+            try:
+                length_sequence = len(sequence)
 
-    def describe_sequences(self, seqs_path, seqs_no=None, verbose=False, full=True):
+                antisense_sequence = Essentials.Antisense(sequence[::-1])
+                n_percent = np.multiply(
+                    np.divide(Counter(sequence).pop("N", 0), length_sequence), 100)
+                seriesdict["Antisense Sequence"].append(antisense_sequence)
+                seriesdict["N(%)"].append(n_percent)
+
+                seriesdict["Length"].append(length_sequence)
+                seriesdict["Header"].append(header)
+                seriesdict["Sense Sequence"].append(sequence)
+            except:
+                os.makedirs("./logs/",  mode=755, exist_ok=True)
+                with open("./logs/Problematic_{}_{}.txt".format(header[-14:], idx), "w") as f:
+                    f.write(sequence)
+                raise KeyError(
+                    'Unexpected character in {} [index {}]'.format(header, idx))
+            idx += 1
+        return pd.DataFrame(seriesdict)
+
+    def _craft_generator(self, seqs_path, chunk_size):
+        def __to_df(fastas):
+            seqs_df = pd.DataFrame(
+                columns=["Header", "Sense Sequence", "Antisense Sequence", "Length", "N(%)"])
+            seqs_df = seqs_df.append(self._process_fastalist(fastas))
+            return seqs_df
+
+        fastas = []
+        with open(seqs_path, "r") as fh:
+            tmp = ''
+            for line in fh:
+                if line[0]=='>':
+                    if tmp != '':
+                        fastas.append(tmp)
+                        if len(fastas) >= chunk_size:
+                            yield __to_df(fastas)
+                            fastas = []
+
+                    tmp = line
+                else:
+                    tmp += line
+                    
+        fastas.append(tmp)
+        yield __to_df(fastas)
+
+    def describe_sequences(self, seqs_path, seqs_no=None, verbose=False, full=True, chunk_size=None):
         """Calculate description of the input sequences
 
         Args:
@@ -153,49 +210,22 @@ class Sequence(object):
                 "This variant of ReadSequences method is yet not implemented")
 
         elif self.mode == READ_MODES.FASTA:
-            seqs_df = pd.DataFrame(
-                columns=["Header", "Sense Sequence", "Antisense Sequence", "Length", "N(%)"])
-            with open(seqs_path, "r") as fh:
-                fasta = fh.read()
-            fastalist = fasta.split("\n>")
-            seriesdict = {"Header": [], "Sense Sequence": [],
-                          "Antisense Sequence": [], "Length": [], "N(%)": []}
-            
-            if seqs_no is not None:
-                fastalist = fastalist[:seqs_no]
-            if verbose:
-                fastalist = tqdm.tqdm(fastalist)
-                
-            idx = 0
-            for element in fastalist:
-                element_list = element.split("\n")
-                header = element_list[0].replace(">", "")
-                sequence = ("").join(
-                    element_list[1:]).replace("-", "N").upper()
-                del element_list
-                try:
-                    length_sequence = len(sequence)
+            if chunk_size is None:
+                with open(seqs_path, "r") as fh:
+                    fasta = fh.read()
 
-                    if full:
-                        antisense_sequence = Essentials.Antisense(sequence[::-1])
-                        n_percent = np.multiply(
-                            np.divide(Counter(sequence).pop("N", 0), length_sequence), 100)
-                        seriesdict["Antisense Sequence"].append(antisense_sequence)
-                        seriesdict["N(%)"].append(n_percent)
-
-                    seriesdict["Length"].append(length_sequence)
-                    seriesdict["Header"].append(header)
-                    seriesdict["Sense Sequence"].append(sequence)
-                except:
-                    os.makedirs("./logs/",  mode=755, exist_ok=True)
-                    with open("./Problematic_{}_{}.txt".format(header[-14:], idx), "w") as f:
-                        f.write(sequence)
-                    raise KeyError(
-                        'Unexpected character in {} [index {}]'.format(header, idx))
-                idx += 1
-            seqs_df = seqs_df.append(pd.DataFrame(seriesdict))
-
-            return seqs_df
+                fastalist = fasta.split("\n>")
+                seqs_df = pd.DataFrame(
+                    columns=["Header", "Sense Sequence", "Antisense Sequence", "Length", "N(%)"])
+                seqs_df = seqs_df.append(self._process_fastalist(fastalist))
+                return len(seqs_df), seqs_df
+            else:
+                # line_no = 0
+                # with open(seqs_path, "r") as fh:
+                #     for _ in fh:
+                #         if '>' in _:
+                #             line_no += 1
+                return 0, self._craft_generator(seqs_path, chunk_size)            
 
         elif self.mode == READ_MODES.DIRECTORY:
             raise NotImplementedError(
