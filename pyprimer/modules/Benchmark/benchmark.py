@@ -180,12 +180,15 @@ class Benchmark(object):
                         "Mean PPC",
                         "Sequences matched(%)"]
 
-    def __init__(self, primer_df, sequence_df, savedir = "./results", tmpdir = "./tmp", nCores = 4):
+    def __init__(self, primer_df, sequence_df, savedir = "./results", tmpdir = "./tmp", nCores = 4, verbose=False):
         self.primers = pd.read_csv(primer_df)
         self.nCores = nCores
         self.tmpdir = tmpdir
         self.savedir = savedir
-        print("Preparing data chunks")
+        self.verbose = verbose
+        if verbose:
+            print("Preparing data chunks")
+
         try:
             flist = os.listdir(self.tmpdir)
             if len(flist) >= 1:
@@ -223,11 +226,9 @@ class Benchmark(object):
         for i in glob.glob(f"{self.tmpdir}/*"):
             os.remove(i)
 
-
     def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
-                         fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
-
-
+                         fname = 'pyprimer_benchmark.feather', 
+                         csv_fname = "pyprimer_summary.csv", pbar=None):
         self.fname = fname
         self.csv_fname = csv_fname
         self.deletions = deletions
@@ -237,21 +238,16 @@ class Benchmark(object):
         unique_groups = self.primers["ID"].unique()
         summary = pd.DataFrame(columns = self.SUMMARY_qPCR_COL_LIST)
         os.makedirs(self.savedir, exist_ok = True)
-        print("Running Benchmark")
-        # cluster = LocalCluster(n_workers = self.nCores, threads_per_worker = 4, silence_logs=logging.ERROR, local_directory='/tmp')
-        # client = Client(cluster, timeout = 120)
-        
         pool = Pool(self.nCores)
 
-        for group in tqdm(unique_groups):
-            # def help_analyse(x):
-                # return analyse(x, Fs, Rs, Ps, self.BENCHMARK_qPCR_COL_LIST,
-                #             self.deletions, self.insertions, self.substitutions)
-
+        for group in tqdm(unique_groups, disable=not self.verbose):
             Fs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "F"),:].values
             Rs = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "R"),:].values
             Ps = self.primers.loc[(self.primers["ID"] == group) & (self.primers["Type"] == "P"),:].values
             
+            if pbar is not None:
+                pbar.set_postfix(group=group)
+
             result_chunks = pool.starmap(analyse, [(
                 x,
                 Fs, Rs, Ps, self.BENCHMARK_qPCR_COL_LIST,
@@ -268,11 +264,12 @@ class Benchmark(object):
             del result_chunks
 
             group_df.to_feather(os.path.join(self.savedir, f"{group}_"+self.fname), compression = "uncompressed")
-            print(f"Benchmark results saved to {os.path.join(self.savedir, group  + self.fname)}")
+            if self.verbose:
+                print(f"Benchmark results saved to {os.path.join(self.savedir, group  + self.fname)}")
             del group_df
 
-        # client.restart()
         summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
-        print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
+        if self.verbose:
+            print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
 
         self._cleanup()

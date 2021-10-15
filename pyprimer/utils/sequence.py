@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+import threading
 import pandas as pd
 import os
 import re
-from collections import Counter
+from collections import Counter, Iterator
+from threading import Thread
 import numpy as np
 from numba import jit
 from enum import Enum
 from .essentials import Essentials
 import tqdm
 from tqdm import trange
+from time import sleep
 
 class READ_MODES(Enum):
     CSV = 1
@@ -130,6 +133,38 @@ class PCRPrimer(object):
             primers_df = primers_df.append(temp_df)
         return primers_df
 
+class QueuedGenerator(Iterator):
+    def __init__(self, generator):
+        super().__init__()
+        self.gen = generator
+        self.queue = []
+
+        thr1 = Thread(target=self._wrapper)
+        thr1.start()
+        # sleep(0.5)
+        # thr2 = Thread(target=self._wrapper)
+        # thr2.start()
+        self.threads = [thr1]
+
+    def _wrapper(self):
+        try:
+            self.queue.append(next(self.gen))
+        except StopIteration:
+            pass
+
+    def __next__(self):
+        try:
+            thr = self.threads.pop()
+            thr.join()
+            res = self.queue.pop()
+
+            thr = Thread(target=self._wrapper)
+            thr.start()
+            self.threads.append(thr)
+            return res 
+        except IndexError:
+            raise StopIteration
+
 class Sequence(object):
     def __init__(self, mode):
         self.mode = mode
@@ -187,7 +222,7 @@ class Sequence(object):
                     tmp = line
                 else:
                     tmp += line
-                    
+
         fastas.append(tmp)
         yield __to_df(fastas)
 
@@ -218,14 +253,9 @@ class Sequence(object):
                 seqs_df = pd.DataFrame(
                     columns=["Header", "Sense Sequence", "Antisense Sequence", "Length", "N(%)"])
                 seqs_df = seqs_df.append(self._process_fastalist(fastalist))
-                return len(seqs_df), seqs_df
+                return seqs_df
             else:
-                # line_no = 0
-                # with open(seqs_path, "r") as fh:
-                #     for _ in fh:
-                #         if '>' in _:
-                #             line_no += 1
-                return 0, self._craft_generator(seqs_path, chunk_size)            
+                return QueuedGenerator(self._craft_generator(seqs_path, chunk_size))
 
         elif self.mode == READ_MODES.DIRECTORY:
             raise NotImplementedError(
