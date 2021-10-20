@@ -34,9 +34,13 @@ warnings.simplefilter("ignore", UserWarning)
 
 def analyse(sequences_path, Fs, Rs, Ps, col_list, deletions, insertions, substitutions):
     res = []
+    if len(Ps) == 0:
+        Ps = Fs
     with open(sequences_path, "r", newline='') as csvfile:
         seqreader = csv.reader(csvfile, delimiter = ',', quotechar ='"')
         for sequences in seqreader:
+            n_perc = sequences[1].upper().count("N")/len(sequences[1])
+            seq_len = len(sequences[1])
             if sequences[0] == "Header":
                 pass
             else:
@@ -81,9 +85,11 @@ def analyse(sequences_path, Fs, Rs, Ps, col_list, deletions, insertions, substit
                                         end = (len(sequences[1]) - 1) - v_r[0]
                                         if end < start:
                                             matches[f"{k_f}:{k_r}"] = False
+                                            break
                                         amplicon = sequences[1][start:end]
                                         if len(amplicon) > 850:
                                             matches[f"{k_f}:{k_r}"] = False
+                                            break
                                         else:
                                             p_res = TOOLS.match_fuzzily(p_ver, amplicon, deletions, insertions, substitutions)
                                             if p_res == None:
@@ -134,7 +140,7 @@ def analyse(sequences_path, Fs, Rs, Ps, col_list, deletions, insertions, substit
 
                             res.append([f_name, f_ver, p_ver,
                                         r_ver, header, amplicon,
-                                        amplicon_length, start, end, PPC])
+                                        amplicon_length, start, end, PPC, n_perc, seq_len])
     res_df = pd.DataFrame(res, columns = col_list)
     del res
     return res_df
@@ -171,7 +177,9 @@ class Benchmark(object):
                 "Amplicon Sense Length",
                 "Amplicon Sense Start",
                 "Amplicon Sense End",
-                "PPC"]
+                "PPC",
+                "N percentage",
+                "Sequence length"]
 
     SUMMARY_qPCR_COL_LIST = ["Primer Group",
                         "F Version",
@@ -181,7 +189,10 @@ class Benchmark(object):
                         "Sequences matched(%)"]
 
     def __init__(self, primer_df, sequence_df, savedir = "./results", tmpdir = "./tmp", nCores = 4, verbose=False):
-        self.primers = pd.read_csv(primer_df)
+        try:
+            self.primers = pd.read_csv(primer_df)
+        except TypeError:
+            self.primers = primer_df
         self.nCores = nCores
         self.tmpdir = tmpdir
         self.savedir = savedir

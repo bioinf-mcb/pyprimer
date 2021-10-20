@@ -47,11 +47,55 @@ class PCRPrimer(object):
         Method that reads primers and parse them into dataframe with all the metadata
         """
         if self.mode == READ_MODES.CSV:
-            # TODO for DataFrame with columns "Header" "Sequence"
-            # primers_df = pd.read_csv(primers_path)
-            # self.dataframe = primers_df
-            raise NotImplementedError(
-                "This variant of ReadPrimers method is yet not implemented")
+            primers_df = pd.read_csv(primers_path)
+            seriesdict = {"Origin": [],
+                          "Target": [],
+                          "ID": [],
+                          "Name": [],
+                          "Sequence": [],
+                          "Version": [],
+                          "Type": [],
+                          "Length": [],
+                          "GC(%)": [],
+                          "AT(%)": [],
+                          "Tm": []}
+            for _, row in primers_df.iterrows():
+                name_ = row['Name']
+                origin_, target_, type_ = row["Group"], '', row["Type"]
+                sequence_ = row["Sequence"]
+                versions = Essentials.get_all_possible_versions(sequence_)
+                length_ = len(row["Sequence"])
+
+                for version_ in versions:
+                    seriesdict["Origin"].append(origin_)
+                    seriesdict["Target"].append(target_)
+                    seriesdict["ID"].append("{}_{}".format(origin_, target_))
+                    seriesdict["Name"].append(name_)
+                    seriesdict["Sequence"].append(sequence_)
+                    seriesdict["Version"].append(version_)
+
+                    gc_ = Essentials.GCcontent(version_)
+                    seriesdict["GC(%)"].append(gc_)
+                    seriesdict["AT(%)"].append(100 - gc_)
+
+                    tm_ = Essentials.Tm(seq=version_, GC=gc_, 
+                                    Na=Na,
+                                    K=K,
+                                    Tris=Tris,
+                                    Mg=Mg,
+                                    dNTPs=dNTPs,
+                                    shift=shift,
+                                    nn_table=nn_table,
+                                    tmm_table=tmm_table,
+                                    imm_table=imm_table,
+                                    de_table=de_table,
+                                    dnac1=dnac1,
+                                    dnac2=dnac2,
+                                    salt_correction=salt_correction)
+                    seriesdict["Tm"].append(tm_)
+                    seriesdict["Type"].append(type_)
+                    seriesdict["Length"].append(length_)
+            return pd.DataFrame(seriesdict)
 
         elif self.mode == READ_MODES.FASTA:
             # TODO for meged fasta file with all primers
