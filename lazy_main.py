@@ -8,18 +8,18 @@ from tqdm import tqdm
 import threading
 
 if __name__ == "__main__":
-    resdir = "./results_min"
+    resdir = "./results_test"
     tmpdir = "./tmp"
 
     # Describing primers from csv
     primers_df = PCRPrimer(READ_MODES.CSV).describe_primers("./artic_primers.csv")
 
     # primers_df = "./tests/primers_df.csv"
-    sequence_path = "/data/SARS-CoV-2/sequences.fasta"
-    total_seqs = 3.6e6
-    # total_seqs = 2767
+    sequence_path = "/data/SARS-CoV-2/sample/sequences.fasta"
+    # total_seqs = 3.6e6
+    total_seqs = 2767
 
-    chunks = 15000
+    chunks = 1000
 
     sequences_gen = Sequence(READ_MODES.FASTA).describe_sequences(sequence_path, chunk_size = chunks)
 

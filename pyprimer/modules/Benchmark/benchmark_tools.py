@@ -5,6 +5,7 @@ import numpy as np
 import warnings
 import tables
 from numba import njit
+from Levenshtein import distance
 
 class TOOLS:
     @staticmethod
@@ -13,26 +14,31 @@ class TOOLS:
                       deletions,
                       insertions=0,
                       substitutions=2):
-        if pattern in sequence:
-            start = sequence.index(pattern)
-            return (start, pattern)
+        # if pattern in sequence:
+            # start = sequence.index(pattern)
+            # return (start, pattern)
+        # else:
+        result = find_near_matches(pattern.encode(),
+                                    sequence.encode(),
+                                    max_substitutions=substitutions,
+                                    max_insertions=insertions,
+                                    max_deletions=deletions)
+
+        # for i in result:
+        #     i.matched = i.matched.decode()
+        if len(result) >= 1:
+            return result
         else:
-            result = find_near_matches(pattern.encode(),
-                                       sequence.encode(),
-                                       max_substitutions=substitutions,
-                                       max_insertions=insertions,
-                                       max_deletions=deletions)
-            if len(result) >= 1:
-                return result
-            else:
-                return None
+            return None
             
     @staticmethod
     def calculate_PPC(F_primer, F_match, R_primer, R_match):
+        F_primer = F_primer.encode()
+        R_primer = R_primer.encode()
         f_ratio_f = fuzz.ratio(F_primer, F_match)
         f_ratio_r = fuzz.ratio(R_primer, R_match)
         return TOOLS._calculate_PPC(F_primer, F_match, R_primer, R_match, f_ratio_f, f_ratio_r)
-    
+
     @staticmethod
     @njit(cache=True)
     def _calculate_PPC(F_primer, F_match, R_primer, R_match, f_ratio_f, f_ratio_r):

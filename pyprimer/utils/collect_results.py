@@ -19,9 +19,9 @@ def _collect_feathers(group_names, resdir, suffix):
                 idx += 1
             t.update()
 
-    collected = pd.concat(dframes)
-    collected = collected.reset_index(drop=True)
-    collected.to_feather(f"{resdir}/{name}{suffix}", compression = "uncompressed")
+            collected = pd.concat(dframes)
+            collected = collected.reset_index(drop=True)
+            collected.to_feather(f"{resdir}/{name}{suffix}", compression = "uncompressed")
 
 def _collect_summaries(resdir):
     primer_df = pd.read_csv(f"{resdir}/0/pyprimer_summary.csv")
@@ -67,6 +67,7 @@ def collect_results(resdir, suffix="_pyprimer_benchmark.feather"):
         group_names.append(group_name)
 
     print("Collecting feathers")
+    print(group_names)
     _collect_feathers(group_names, resdir, suffix)
 
     print("Collecting summaries")

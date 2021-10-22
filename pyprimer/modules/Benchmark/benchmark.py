@@ -45,15 +45,20 @@ def analyse(sequences_path, Fs, Rs, Ps, col_list, deletions, insertions, substit
                 pass
             else:
                 for f in Fs:
+                    f_ver = f[5]
+                    f_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
                     for r in Rs:
+                        last_seq = None
+                        r_ver = r[5]
+                        r_res = TOOLS.match_fuzzily(r_ver, sequences[2], deletions, insertions, substitutions)
                         for p in Ps:
                             header = sequences[0]
                             f_name = f[2]
-                            f_ver = f[5]
                             p_ver = p[5]
-                            r_ver = r[5]
-                            f_res = TOOLS.match_fuzzily(f_ver, sequences[1], deletions, insertions, substitutions)
-                            r_res = TOOLS.match_fuzzily(r_ver, sequences[2], deletions, insertions, substitutions)
+
+                            if last_seq is not None:
+                                assert r_res==last_seq, str(r_res)+' '+str(last_seq)
+                            last_seq = r_res
 
                             if (f_res == None) or (r_res == None):
                                 start = None
