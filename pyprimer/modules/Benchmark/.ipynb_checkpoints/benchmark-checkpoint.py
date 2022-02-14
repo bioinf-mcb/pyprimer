@@ -67,13 +67,14 @@ class Benchmark(object):
                         "Sequences matched(%)",
                         "Misprime ratio(%)"]
 
-    def __init__(self, primer_df, sequence_df, n_sequences, savedir = "./results", tmpdir = "./tmp", nCores = 4):
+    def __init__(self, primer_df, sequence_df, savedir = "./results", tmpdir = "./tmp", nCores = 4):
         self.primers = pd.read_csv(primer_df)
         self.nCores = nCores
         self.tmpdir = tmpdir
         self.savedir = savedir
         print("Preparing data chunks")
-        self.n_sequences = n_sequences
+        sequence_df = pd.read_csv(sequence_df)
+        self.n_sequences = sequence_df.shape[0]
         try:
             flist = os.listdir(self.tmpdir)
             if len(flist) >= 1:
@@ -82,7 +83,6 @@ class Benchmark(object):
             else:
                 raise ValueError()
         except:
-            sequence_df = pd.read_csv(sequence_df)
             os.makedirs(self.tmpdir, exist_ok = True)
             chunkpaths = []
             chunk_size = (sequence_df.shape[0] // self.nCores) + 1
@@ -133,6 +133,8 @@ class Benchmark(object):
                             misprimes.append(group_misprime)
                             PPC_list.append(mean_ppc)
                             matches.append(match)
+                        # seqs_matched = len(group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion) & (group_df["Amplicon Sense Length"] != 0), "Amplicon Sense Length"])
+                        # n_seqs = group_df.loc[(group_df["F Primer Version"] == fversion) & (group_df["R Primer Version"] == rversion) & (group_df["P Probe Version"] == pversion), :].shape[0]
                         v_stats["Primer Group"].append(group)
                         v_stats["F Version"].append(fversion)
                         v_stats["P Version"].append(pversion)
@@ -144,6 +146,7 @@ class Benchmark(object):
                             percent_matched = 0
                         v_stats["Sequences matched(%)"].append(percent_matched)
                         v_stats["Misprime ratio(%)"].append(np.mean(misprimes))
+                        # print(v_stats)
 
             group_stats = pd.DataFrame(v_stats)
             return group_stats
@@ -190,6 +193,12 @@ class Benchmark(object):
                                         r_match = ""
                                         p_match = ""
                                         PPC = 0
+                                    #TODO add primer3 bindings and changes in the code to fit
+                                    #     the requirements of presented functions. (-10bp to start and +10bp to end in template)
+                                    #     Don't forget to also iterate over matches, to find the misprimes
+                                    #     bindings:
+                                    #        - calcHeterodimer(output_structure = True)
+                                    #        - calcEndStability
                                     else:
                                         Forwards = {}
                                         if f_res != None:
@@ -218,7 +227,7 @@ class Benchmark(object):
                                                         for p_i in range(len(p_res)):
                                                             Probes[p_i] = (p_res[p_i].start, p_res[p_i].end, start)
                                                         matches[f"{k_f}:{k_r}"] = True
-
+                                        # target_dist = np.Inf
                                         n_match = 0
                                         binding_id = 0
                                         for k, v in matches.items():
@@ -231,6 +240,9 @@ class Benchmark(object):
                                                 r_good = Reverses[k_r]
                                                 for k_p in Probes.keys():
                                                     p_good = Probes[k_p]
+                                                    # mean_dist = (f_good[4] + r_good[4] + 1e-6)/2 # 1e-6 for smoothing
+                                                    # if mean_dist < target_dist:
+                                                    #     target_dist = mean_dist
                                                     start = f_good[0]
                                                     end = (len(sequences[1]) - 1) - r_good[0]
 
@@ -303,18 +315,9 @@ class Benchmark(object):
                                                                                     max_loop = max_loop)
 
                                                     bool_list = []
-                                                    bool_list.append(TOOLS.check_correctness(f_bind,
-                                                                                             f_stability,
-                                                                                             gibbs_threshold,
-                                                                                             anneal_temp_c))
-                                                    bool_list.append(TOOLS.check_correctness(p_bind,
-                                                                                             p_stability,
-                                                                                             gibbs_threshold,
-                                                                                             anneal_temp_c))
-                                                    bool_list.append(TOOLS.check_correctness(r_bind,
-                                                                                             r_stability,
-                                                                                             gibbs_threshold,
-                                                                                             anneal_temp_c))
+                                                    bool_list.append(TOOLS.check_correctness(f_bind, f_stability, gibbs_threshold, anneal_temp_c))
+                                                    bool_list.append(TOOLS.check_correctness(p_bind, p_stability, gibbs_threshold, anneal_temp_c))
+                                                    bool_list.append(TOOLS.check_correctness(r_bind, r_stability, gibbs_threshold, anneal_temp_c))
                                                     if bool_list[0]:
                                                         f_verdict = True
                                                         f_heterodimer = f_bind.ascii_structure
@@ -347,6 +350,16 @@ class Benchmark(object):
                                                         r_match = ""
                                                         PPC = 0
                                                     else:
+                                        # if n_match <= 0:
+                                        #     start = None
+                                        #     end = None
+                                        #     amplicon = ""
+                                        #     amplicon_length = 0
+                                        #     f_match = ""
+                                        #     r_match = ""
+                                        #     PPC = 0
+                                        # else:
+                                        #     for i in range(n_match)
                                                         PPC = TOOLS.calculate_PPC(F_primer=f_ver,
                                                                                   F_match=f_match,
                                                                                   R_primer=r_ver,
@@ -361,6 +374,7 @@ class Benchmark(object):
                                                                     f_dg, p_dg, r_dg, f_verdict, p_verdict,
                                                                     r_verdict, prime, PPC])
                                                         binding_id += 1
+            # print(res)
             res_df = pd.DataFrame(res, columns = col_list)
             del res
             return res_df
@@ -403,16 +417,16 @@ class Benchmark(object):
             result_chunks = client.gather(futures)
             group_df = pd.concat(result_chunks)
             group_df.reset_index(drop = True, inplace = True)
-            # print("\nPerformance computed, generating group summary\n")
-            # group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
-            # summary = summary.append(group_stats)
+            print("\nPerformance computed, generating group summary\n")
+            group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
+            summary = summary.append(group_stats)
             client.cancel(futures)
-            # del group_stats
+            del group_stats
             del result_chunks
-            # print("Summary generated, saving group benchmark to Feather\n")
+            print("Summary generated, saving group benchmark to Feather\n")
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
             print(f"Benchmark results saved to {os.path.join(self.tmpdir, group + '_' + self.fname)}\n")
             del group_df
 
-        # summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
-        # print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
+        summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
+        print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")

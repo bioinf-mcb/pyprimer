@@ -42,6 +42,12 @@ class Essentials:
         "V" : "B",
         "N" : "N"   
     }
+    NUC_ENCODING = {
+        "A":0,
+        "C":1,
+        "T":2,
+        "G":3
+        }
     def Antisense(sequence):
         nuclist = list(sequence)
         comp_nuclist = nuclist.copy()

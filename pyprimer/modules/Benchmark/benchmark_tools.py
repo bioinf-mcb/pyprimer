@@ -5,28 +5,61 @@ import numpy as np
 import warnings
 import tables
 from numba import njit
+import string
+import random
 
 class TOOLS:
     @staticmethod
     def match_fuzzily(pattern,
                       sequence,
-                      deletions,
-                      insertions=0,
-                      substitutions=2):
-        if pattern in sequence:
-            start = sequence.index(pattern)
-            return (start, pattern)
+                      deletions = None,
+                      insertions = None,
+                      substitutions = None,
+                      distance = None):
+        result = find_near_matches(pattern,
+                                    sequence,
+                                    max_substitutions=substitutions,
+                                    max_insertions=insertions,
+                                    max_deletions=deletions,
+                                    max_l_dist = distance)
+        if len(result) >= 1:
+            return result
         else:
-            result = find_near_matches(pattern,
-                                       sequence,
-                                       max_substitutions=substitutions,
-                                       max_insertions=insertions,
-                                       max_deletions=deletions)
-            if len(result) >= 1:
-                return result
+            return None
+    @staticmethod
+    def extract_template(sequence, start_, end_):
+        end = len(sequence) - start_
+        start = len(sequence) - end_
+        result = sequence[start:end]
+        return result
+    
+    @staticmethod
+    def check_correctness(res_bind, res_stability, gibbs_threshold, temp_c):
+        if res_bind.structure_found:
+            if res_bind.tm > temp_c:
+                if res_bind.dg < gibbs_threshold:
+                    if res_stability.structure_found:
+                        if res_stability.tm > temp_c:
+                            if res_stability.dg < gibbs_threshold:
+                                verdict = True
+                            else:
+                                verdict = False
+                        else:
+                            verdict = False
+                    else:
+                        verdict = False
+                else:
+                    verdict = False
             else:
-                return None
-            
+                verdict = False
+        else:
+            verdict = False
+        return verdict
+
+    @staticmethod
+    def id_generator(chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(8))
+
     @staticmethod
     def calculate_PPC(F_primer, F_match, R_primer, R_match):
         f_ratio_f = fuzz.ratio(F_primer, F_match)
