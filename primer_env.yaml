@@ -208,3 +208,4 @@ dependencies:
   - zstd=1.4.5=h9ceee32_0
   - pip:
     - venn==0.1.3
+prefix: /opt/miniconda3/envs/primer_env

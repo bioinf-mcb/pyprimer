@@ -59,7 +59,18 @@ class Essentials:
         gc = sequence.count("G") + sequence.count("C")
         gc_content = gc / len(sequence)
         return gc_content * 100
-        
+
+    def _key_error(neighbors, strict):
+    """Throw an error or a warning if there is no data for the neighbors (PRIVATE)."""
+    # We haven't found the key in the tables
+    if strict:
+        raise ValueError("no thermodynamic data for neighbors %r available" % neighbors)
+    else:
+        warnings.warn(
+            "no themodynamic data for neighbors %r available. "
+            "Calculation will be wrong" % neighbors,
+            BiopythonWarning,
+        )    
     def Tm(seq,
            GC,
            Na = 50,

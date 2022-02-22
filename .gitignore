@@ -3,3 +3,4 @@ run_qPCR.py
 **/*.pyc
 dask-worker-space
 prepare_dataset.py
+*.csv
