@@ -32,6 +32,7 @@ warnings.filterwarnings("ignore")
 
 class Benchmark(object):
 
+
     BENCHMARK_qPCR_COL_LIST = [
                 "Group ID",
                 "Prime ID",
@@ -59,20 +60,11 @@ class Benchmark(object):
                 "System Prime",
                 "Primer Pair Coverage"]
 
-<<<<<<< Updated upstream
     SUMMARY_qPCR_COL_LIST = [
                         "Primer Group",
-=======
-<<<<<<< Updated upstream
-    SUMMARY_qPCR_COL_LIST = ["Primer Group",
->>>>>>> Stashed changes
                         "F Version",
                         "P Version",
                         "R Version",
-=======
-    SUMMARY_qPCR_COL_LIST = [
-                        "Primer Group",
->>>>>>> Stashed changes
                         "Mean PPC",
                         "Sequences matched(%)",
                         "Misprime ratio(%)"]
@@ -115,57 +107,6 @@ class Benchmark(object):
             self.chunkpaths = chunkpaths
             del sequence_df
 
-
-<<<<<<< Updated upstream
-    def qPCR_performance(self, deletions = None, insertions = None, substitutions = None, distance = 3,
-                         fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv", anneal_temp_c = 60,
-                         mv_conc_mM = 50, dv_conc_mM = 12, dntp_conc_mM = 0.8, dna_conc_nM = 50, max_loop = 30,
-                         gibbs_threshold = -9000, template_offset = 10):
-=======
-<<<<<<< Updated upstream
-    def qPCR_performance(self, deletions = 0, insertions = 0, substitutions = 0,
-                         fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv",):
->>>>>>> Stashed changes
-        def generate_group_summary(group_df, group, col_list):
-            v_stats = dict((key,[]) for key in col_list)
-            for fversion in group_df["F Primer Version"].unique():
-                for rversion in group_df["R Primer Version"].unique():
-                    for pversion in group_df["P Probe Version"].unique():
-                        misprimes = []
-                        PPC_list = []
-                        matches = []
-                        for gid in group_df["Group ID"].unique():
-                            tmp_df = group_df.loc[(group_df["F Primer Version"] == fversion) &\
-                                                  (group_df["R Primer Version"] == rversion) &\
-                                                  (group_df["P Probe Version"] == pversion) &\
-                                                  (group_df["Group ID"] == gid),:]
-                            try:
-                                group_misprime = 1 - (1/len(tmp_df.loc[tmp_df["System Prime"] == True, "Prime ID"].values))
-                            except:
-                                group_misprime = 0
-                            mean_ppc = tmp_df.loc[tmp_df["System Prime"] == True, "Primer Pair Coverage"].mean()
-                            if tmp_df["System Prime"].sum() >= 1:
-                                match = 1
-                            else:
-                                match = 0
-                            misprimes.append(group_misprime)
-                            PPC_list.append(mean_ppc)
-                            matches.append(match)
-                        v_stats["Primer Group"].append(group)
-                        v_stats["F Version"].append(fversion)
-                        v_stats["P Version"].append(pversion)
-                        v_stats["R Version"].append(rversion)
-                        v_stats["Mean PPC"].append(np.mean(PPC_list))
-                        try:
-                            percent_matched = (np.sum(matches) / self.n_sequences) * 100
-                        except:
-                            percent_matched = 0
-                        v_stats["Sequences matched(%)"].append(percent_matched)
-<<<<<<< Updated upstream
-                        v_stats["Misprime ratio(%)"].append(np.mean(misprimes))
-
-=======
-=======
     def qPCR_performance(self, deletions = None, insertions = None, substitutions = None, distance = 3,
                          fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv", anneal_temp_c = 60,
                          mv_conc_mM = 50, dv_conc_mM = 12, dntp_conc_mM = 0.8, dna_conc_nM = 50, max_loop = 30,
@@ -176,8 +117,6 @@ class Benchmark(object):
             v_stats["Mean PPC"].append(np.mean(np.nan_to_num(PPC_s)))
             v_stats["Sequences matched(%)"].append(np.mean(SeqMatch_s)*100)
             v_stats["Misprime ratio(%)"].append(np.mean(np.nan_to_num(MisRatio_s)))
->>>>>>> Stashed changes
->>>>>>> Stashed changes
             group_stats = pd.DataFrame(v_stats)
             return group_stats
 
@@ -398,42 +337,7 @@ class Benchmark(object):
                                                         p_match = ""
                                                         r_match = ""
                                                         PPC = 0
-<<<<<<< Updated upstream
-                                                    else:
-                                                        PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-                                                                                  F_match=f_match,
-                                                                                  R_primer=r_ver,
-                                                                                  R_match=r_match)
 
-                                                        res.append([group_id, f"{group_id}_{binding_id}",
-                                                                    f_name, f_ver, p_ver,
-                                                                    r_ver, header, amplicon,
-                                                                    amplicon_length, start, end,
-                                                                    f_heterodimer, p_heterodimer,
-                                                                    r_heterodimer, f_tm, p_tm, r_tm,
-                                                                    f_dg, p_dg, r_dg, f_verdict, p_verdict,
-                                                                    r_verdict, prime, PPC])
-                                                        binding_id += 1
-=======
-<<<<<<< Updated upstream
-                                        if n_match <= 0:
-                                            start = None
-                                            end = None
-                                            amplicon = ""
-                                            amplicon_length = 0
-                                            f_match = ""
-                                            r_match = ""
-                                            PPC = 0
-                                        else:
-                                            PPC = TOOLS.calculate_PPC(F_primer=f_ver,
-                                                                    F_match=f_match,
-                                                                    R_primer=r_ver,
-                                                                    R_match=r_match)
-
-                                    res.append([f_name, f_ver, p_ver,
-                                                r_ver, header, amplicon,
-                                                amplicon_length, start, end, PPC])
-=======
                                                     else:
                                                         PPC = TOOLS.calculate_PPC(F_primer=f_ver,
                                                                                   F_match=f_match,
@@ -458,8 +362,7 @@ class Benchmark(object):
                             SeqMatch_.append(True)
                         else:
                             SeqMatch_.append(False)
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+
             res_df = pd.DataFrame(res, columns = col_list)
             del res
             return (res_df, PPC_, MisRatio_, SeqMatch_)
@@ -513,28 +416,18 @@ class Benchmark(object):
                 SeqMatch_s += element[3]
             group_df = pd.concat(results_s)
             group_df.reset_index(drop = True, inplace = True)
-<<<<<<< Updated upstream
-            # print("\nPerformance computed, generating group summary\n")
-            # group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
-            # summary = summary.append(group_stats)
-=======
             print("\nPerformance computed, generating group summary\n")
-<<<<<<< Updated upstream
-            group_stats = generate_group_summary(group_df, group, self.SUMMARY_qPCR_COL_LIST)
-=======
-            # exit()
+
             group_stats = generate_group_summary(group, self.SUMMARY_qPCR_COL_LIST,
                                                  PPC_s, MisRatio_s, SeqMatch_s)
->>>>>>> Stashed changes
             summary = summary.append(group_stats)
->>>>>>> Stashed changes
             client.cancel(futures)
-            # del group_stats
+            del group_stats
             del result_chunks
-            # print("Summary generated, saving group benchmark to Feather\n")
+            print("Summary generated, saving group benchmark to Feather\n")
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
             print(f"Benchmark results saved to {os.path.join(self.tmpdir, group + '_' + self.fname)}\n")
             del group_df
 
-        # summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
-        # print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
+        summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
+        print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")

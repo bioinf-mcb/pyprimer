@@ -8,6 +8,9 @@ from numba import jit
 from enum import Enum
 from .essentials import Essentials
 import tqdm
+from tqdm import trange
+from primer3 import bindings
+from pyprimer.modules.Benchmark.benchmark_tools import TOOLS
 
 class READ_MODES(Enum):
     CSV = 1
@@ -89,7 +92,8 @@ class PCRPrimer(object):
                           "Length": [],
                           "GC(%)": [],
                           "AT(%)": [],
-                          "Tm": []}
+                          "Tm": [],
+                          "Homodimer":[]}
 
             headers = []
             seqs = []
@@ -118,11 +122,15 @@ class PCRPrimer(object):
                     gc_ = Essentials.GCcontent(version_)
                     seriesdict["GC(%)"].append(gc_)
                     seriesdict["AT(%)"].append(100 - gc_)
-
-                    tm_ = Essentials.Tm(seq=version_, GC=gc_, **kwargs)
+                    tm_ = bindings.calcTm(seq = version_, mv_conc = 50, dv_conc = 12, dna_conc = 50, dntp_conc = 0.8)
+                    # tm_ = Essentials.Tm(seq=version_, GC=gc_, **kwargs)
+                    
                     seriesdict["Tm"].append(tm_)
                     seriesdict["Type"].append(type_)
                     seriesdict["Length"].append(length_)
+                    homodimer = bindings.calcHomodimer(seq = version_, mv_conc = 50, dv_conc = 12, dna_conc = 50, dntp_conc = 0.8)
+                    verdict_ = TOOLS.check_correctness(homodimer, homodimer, -9000, 60)
+                    seriesdict["Homodimer"].append(verdict_)
             groups[f] = seriesdict
         for key, item in groups.items():
             temp_df = pd.DataFrame(item)

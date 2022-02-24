@@ -93,7 +93,7 @@ class PCRPrimer(object):
                           "GC(%)": [],
                           "AT(%)": [],
                           "Tm": [],
-                          "Homodimer":}
+                          "Homodimer":[]}
 
             headers = []
             seqs = []
@@ -122,8 +122,9 @@ class PCRPrimer(object):
                     gc_ = Essentials.GCcontent(version_)
                     seriesdict["GC(%)"].append(gc_)
                     seriesdict["AT(%)"].append(100 - gc_)
-                    tm_ = bindngs.calcTm(seq = version_, mv_conc = 50, dv_conc = 12, dna_conc = 50, dntp_conc = 0.8)
+                    tm_ = bindings.calcTm(seq = version_, mv_conc = 50, dv_conc = 12, dna_conc = 50, dntp_conc = 0.8)
                     # tm_ = Essentials.Tm(seq=version_, GC=gc_, **kwargs)
+                    
                     seriesdict["Tm"].append(tm_)
                     seriesdict["Type"].append(type_)
                     seriesdict["Length"].append(length_)
