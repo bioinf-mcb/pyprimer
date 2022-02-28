@@ -104,7 +104,7 @@ class PCRPrimer(object):
                     else:
                         seqs.append(line.strip())
 
-            for i in range(len(headers)):
+            for i in trange(len(headers)):
                 name_ = headers[i]
                 origin_, target_, type_ = headers[i].split("|")
                 sequence_ = seqs[i]

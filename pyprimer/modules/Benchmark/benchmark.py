@@ -111,14 +111,14 @@ class Benchmark(object):
                          fname = 'pyprimer_benchmark.feather', csv_fname = "pyprimer_summary.csv", anneal_temp_c = 60,
                          mv_conc_mM = 50, dv_conc_mM = 12, dntp_conc_mM = 0.8, dna_conc_nM = 50, max_loop = 30,
                          gibbs_threshold = -9000, template_offset = 10):
-        def generate_group_summary(group, col_list, PPC_s, MisRatio_s, SeqMatch_s):
-            v_stats = dict((key,[]) for key in col_list)
-            v_stats["Primer Group"].append(group)
-            v_stats["Mean PPC"].append(np.mean(np.nan_to_num(PPC_s)))
-            v_stats["Sequences matched(%)"].append(np.mean(SeqMatch_s)*100)
-            v_stats["Misprime ratio(%)"].append(np.mean(np.nan_to_num(MisRatio_s)))
-            group_stats = pd.DataFrame(v_stats)
-            return group_stats
+        # def generate_group_summary(group, col_list, PPC_s, MisRatio_s, SeqMatch_s):
+        #     v_stats = dict((key,[]) for key in col_list)
+        #     v_stats["Primer Group"].append(group)
+        #     v_stats["Mean PPC"].append(np.mean(np.nan_to_num(PPC_s)))
+        #     v_stats["Sequences matched(%)"].append(np.mean(SeqMatch_s)*100)
+        #     v_stats["Misprime ratio(%)"].append(np.mean(np.nan_to_num(MisRatio_s)))
+        #     group_stats = pd.DataFrame(v_stats)
+        #     return group_stats
 
         def analyse(sequences_path, Fs, Rs, Ps, col_list,
                     deletions, insertions, substitutions,
@@ -418,16 +418,16 @@ class Benchmark(object):
             group_df.reset_index(drop = True, inplace = True)
             print("\nPerformance computed, generating group summary\n")
 
-            group_stats = generate_group_summary(group, self.SUMMARY_qPCR_COL_LIST,
-                                                 PPC_s, MisRatio_s, SeqMatch_s)
-            summary = summary.append(group_stats)
+            # group_stats = generate_group_summary(group, self.SUMMARY_qPCR_COL_LIST,
+            #                                      PPC_s, MisRatio_s, SeqMatch_s)
+            # summary = summary.append(group_stats)
             client.cancel(futures)
-            del group_stats
+            # del group_stats
             del result_chunks
             print("Summary generated, saving group benchmark to Feather\n")
             group_df.to_feather(os.path.join(self.tmpdir, f"{group}_"+self.fname), compression = "uncompressed")
             print(f"Benchmark results saved to {os.path.join(self.tmpdir, group + '_' + self.fname)}\n")
             del group_df
 
-        summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
-        print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
+        # summary.to_csv(os.path.join(self.savedir, self.csv_fname), index = False)
+        # print(f"Benchmark summary saved to {os.path.join(self.savedir, self.csv_fname)}\n")
