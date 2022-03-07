@@ -449,11 +449,6 @@ class Essentials:
 
     def get_all_possible_versions(seq):       
         mapping = Essentials.IUPAC.copy()
-
-        if "N" in seq:
-            for key in mapping.keys():
-                mapping[key].append("N")
-                
         maximum = np.zeros(len(seq))
         for i in range(len(seq)):
             maximum[i] = len(mapping[seq[i]])-1
